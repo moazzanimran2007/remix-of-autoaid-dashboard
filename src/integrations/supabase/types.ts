@@ -14,7 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      call_logs: {
+        Row: {
+          created_at: string | null
+          direction: Database["public"]["Enums"]["call_direction"]
+          duration: number | null
+          from_number: string | null
+          id: string
+          job_id: string | null
+          recording_url: string | null
+          telnyx_call_id: string | null
+          to_number: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction: Database["public"]["Enums"]["call_direction"]
+          duration?: number | null
+          from_number?: string | null
+          id?: string
+          job_id?: string | null
+          recording_url?: string | null
+          telnyx_call_id?: string | null
+          to_number?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: Database["public"]["Enums"]["call_direction"]
+          duration?: number | null
+          from_number?: string | null
+          id?: string
+          job_id?: string | null
+          recording_url?: string | null
+          telnyx_call_id?: string | null
+          to_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          assigned_mechanic_id: string | null
+          car_make: string | null
+          car_model: string | null
+          car_year: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          diagnosis: Json | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          photos: string[] | null
+          severity: Database["public"]["Enums"]["job_severity"] | null
+          status: Database["public"]["Enums"]["job_status"] | null
+          symptoms: string | null
+          transcript: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_mechanic_id?: string | null
+          car_make?: string | null
+          car_model?: string | null
+          car_year?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          diagnosis?: Json | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          photos?: string[] | null
+          severity?: Database["public"]["Enums"]["job_severity"] | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          symptoms?: string | null
+          transcript?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_mechanic_id?: string | null
+          car_make?: string | null
+          car_model?: string | null
+          car_year?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          diagnosis?: Json | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          photos?: string[] | null
+          severity?: Database["public"]["Enums"]["job_severity"] | null
+          status?: Database["public"]["Enums"]["job_status"] | null
+          symptoms?: string | null
+          transcript?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_assigned_mechanic_id_fkey"
+            columns: ["assigned_mechanic_id"]
+            isOneToOne: false
+            referencedRelation: "mechanics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mechanics: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["mechanic_status"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          phone: string
+          status?: Database["public"]["Enums"]["mechanic_status"] | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          phone?: string
+          status?: Database["public"]["Enums"]["mechanic_status"] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +158,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      call_direction: "inbound" | "outbound"
+      job_severity: "low" | "medium" | "high"
+      job_status: "new" | "assigned" | "in-progress" | "resolved"
+      mechanic_status: "available" | "busy"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +288,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      call_direction: ["inbound", "outbound"],
+      job_severity: ["low", "medium", "high"],
+      job_status: ["new", "assigned", "in-progress", "resolved"],
+      mechanic_status: ["available", "busy"],
+    },
   },
 } as const
