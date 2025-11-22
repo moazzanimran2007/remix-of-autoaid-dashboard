@@ -1,6 +1,6 @@
-// WebSocket connection management for real-time updates
-
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/realtime';
+// WebSocket connection management using Supabase Realtime
+import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type WebSocketEvent =
   | { type: 'transcript'; jobId: string; text: string }
@@ -14,53 +14,86 @@ export type WebSocketEvent =
 type WebSocketCallback = (event: WebSocketEvent) => void;
 
 class WebSocketManager {
-  private ws: WebSocket | null = null;
+  private channel: RealtimeChannel | null = null;
   private callbacks: Set<WebSocketCallback> = new Set();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
 
   connect() {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.channel) {
       return;
     }
 
-    console.log('Connecting to WebSocket...');
-    this.ws = new WebSocket(WS_URL);
-
-    this.ws.onopen = () => {
-      console.log('WebSocket connected');
-      this.reconnectAttempts = 0;
-    };
-
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as WebSocketEvent;
-        this.callbacks.forEach((callback) => callback(data));
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    this.ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      this.attemptReconnect();
-    };
-  }
-
-  private attemptReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-      setTimeout(() => this.connect(), delay);
-    } else {
-      console.error('Max reconnection attempts reached');
-    }
+    console.log('Connecting to Supabase Realtime...');
+    
+    this.channel = supabase
+      .channel('jobs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'jobs'
+        },
+        (payload) => {
+          console.log('Job created:', payload.new);
+          this.callbacks.forEach((callback) => 
+            callback({ type: 'job_created', job: payload.new })
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'jobs'
+        },
+        (payload) => {
+          console.log('Job updated:', payload.new);
+          this.callbacks.forEach((callback) => 
+            callback({ type: 'job_updated', job: payload.new })
+          );
+          
+          // Check for specific updates
+          const newJob = payload.new as any;
+          const oldJob = payload.old as any;
+          
+          if (newJob.diagnosis && !oldJob.diagnosis) {
+            this.callbacks.forEach((callback) =>
+              callback({ type: 'diagnosis_update', jobId: newJob.id, diagnosis: newJob.diagnosis })
+            );
+          }
+          
+          if (newJob.photos && oldJob.photos && newJob.photos.length > oldJob.photos.length) {
+            const newPhoto = newJob.photos[newJob.photos.length - 1];
+            this.callbacks.forEach((callback) =>
+              callback({ type: 'photo_received', jobId: newJob.id, photoUrl: newPhoto })
+            );
+          }
+          
+          if (newJob.location_lat && !oldJob.location_lat) {
+            this.callbacks.forEach((callback) =>
+              callback({ 
+                type: 'location_update', 
+                jobId: newJob.id, 
+                lat: newJob.location_lat, 
+                lng: newJob.location_lng 
+              })
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Supabase Realtime connected');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Supabase Realtime error');
+        } else if (status === 'TIMED_OUT') {
+          console.error('Supabase Realtime timed out');
+        } else if (status === 'CLOSED') {
+          console.log('Supabase Realtime closed');
+          this.channel = null;
+        }
+      });
   }
 
   subscribe(callback: WebSocketCallback) {
@@ -71,19 +104,15 @@ class WebSocketManager {
   }
 
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.channel) {
+      supabase.removeChannel(this.channel);
+      this.channel = null;
     }
     this.callbacks.clear();
   }
 
   send(data: any) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    } else {
-      console.error('WebSocket is not connected');
-    }
+    console.log('Supabase Realtime does not support sending messages directly');
   }
 }
 

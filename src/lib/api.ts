@@ -1,6 +1,5 @@
-// API helper functions for backend integration
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// API helper functions using Supabase edge functions
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Job {
   id: string;
@@ -35,47 +34,104 @@ export interface Mechanic {
   status: 'available' | 'busy';
 }
 
-async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
-  }
-
-  return response.json();
+// Map database fields to frontend format
+function mapJobFromDb(dbJob: any): Job {
+  return {
+    id: dbJob.id,
+    customerName: dbJob.customer_name || 'Unknown',
+    customerPhone: dbJob.customer_phone || '',
+    carModel: dbJob.car_model || '',
+    carMake: dbJob.car_make,
+    carYear: dbJob.car_year,
+    symptoms: dbJob.symptoms || '',
+    severity: dbJob.severity,
+    status: dbJob.status,
+    createdAt: dbJob.created_at,
+    assignedMechanic: dbJob.assigned_mechanic?.name,
+    location: dbJob.location_lat && dbJob.location_lng
+      ? { lat: dbJob.location_lat, lng: dbJob.location_lng }
+      : undefined,
+    photos: dbJob.photos,
+    transcript: dbJob.transcript,
+    diagnosis: dbJob.diagnosis,
+  };
 }
 
 export const api = {
   // Jobs
-  getJobs: () => fetchAPI<Job[]>('/jobs'),
+  getJobs: async () => {
+    const { data, error } = await supabase.functions.invoke('jobs-api', {
+      method: 'GET',
+    });
+    
+    if (error) throw error;
+    return data.map(mapJobFromDb);
+  },
   
-  getJob: (id: string) => fetchAPI<Job>(`/jobs/${id}`),
+  getJob: async (id: string) => {
+    const { data, error } = await supabase.functions.invoke('jobs-api', {
+      method: 'GET',
+    });
+    
+    if (error) throw error;
+    
+    // The edge function doesn't support path params yet, so we filter client-side
+    const job = data.find((j: any) => j.id === id);
+    if (!job) throw new Error('Job not found');
+    
+    return mapJobFromDb(job);
+  },
   
-  assignJob: (id: string, mechanicId: string) =>
-    fetchAPI<Job>(`/jobs/${id}/assign`, {
-      method: 'POST',
-      body: JSON.stringify({ mechanicId }),
-    }),
+  assignJob: async (id: string, mechanicId: string) => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ 
+        assigned_mechanic_id: mechanicId,
+        status: 'assigned',
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        assigned_mechanic:mechanics(id, name, phone, status)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return mapJobFromDb(data);
+  },
 
-  updateJobStatus: (id: string, status: Job['status']) =>
-    fetchAPI<Job>(`/jobs/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status }),
-    }),
+  updateJobStatus: async (id: string, status: Job['status']) => {
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({ status })
+      .eq('id', id)
+      .select(`
+        *,
+        assigned_mechanic:mechanics(id, name, phone, status)
+      `)
+      .single();
+    
+    if (error) throw error;
+    return mapJobFromDb(data);
+  },
 
   // Mechanics
-  getMechanics: () => fetchAPI<Mechanic[]>('/mechanics'),
+  getMechanics: async () => {
+    const { data, error } = await supabase.functions.invoke('mechanics-api', {
+      method: 'GET',
+    });
+    
+    if (error) throw error;
+    return data;
+  },
 
   // Calls
-  initiateCall: (phoneNumber: string, type: 'customer' | 'mechanic') =>
-    fetchAPI('/calls/outbound', {
-      method: 'POST',
-      body: JSON.stringify({ phoneNumber, type }),
-    }),
+  initiateCall: async (phoneNumber: string, type: 'customer' | 'mechanic') => {
+    const { data, error } = await supabase.functions.invoke('call-outbound', {
+      body: { phoneNumber, type },
+    });
+    
+    if (error) throw error;
+    return data;
+  },
 };
