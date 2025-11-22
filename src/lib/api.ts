@@ -60,26 +60,30 @@ function mapJobFromDb(dbJob: any): Job {
 export const api = {
   // Jobs
   getJobs: async () => {
-    const { data, error } = await supabase.functions.invoke('jobs-api', {
-      method: 'GET',
-    });
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(`
+        *,
+        assigned_mechanic:mechanics(id, name, phone, status)
+      `)
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data.map(mapJobFromDb);
   },
   
   getJob: async (id: string) => {
-    const { data, error } = await supabase.functions.invoke('jobs-api', {
-      method: 'GET',
-    });
+    const { data, error } = await supabase
+      .from('jobs')
+      .select(`
+        *,
+        assigned_mechanic:mechanics(id, name, phone, status)
+      `)
+      .eq('id', id)
+      .single();
     
     if (error) throw error;
-    
-    // The edge function doesn't support path params yet, so we filter client-side
-    const job = data.find((j: any) => j.id === id);
-    if (!job) throw new Error('Job not found');
-    
-    return mapJobFromDb(job);
+    return mapJobFromDb(data);
   },
   
   assignJob: async (id: string, mechanicId: string) => {
@@ -117,12 +121,21 @@ export const api = {
 
   // Mechanics
   getMechanics: async () => {
-    const { data, error } = await supabase.functions.invoke('mechanics-api', {
-      method: 'GET',
-    });
+    const { data, error } = await supabase
+      .from('mechanics')
+      .select('*')
+      .order('name');
     
     if (error) throw error;
-    return data;
+    
+    // Transform to match frontend expectations
+    return data.map(m => ({
+      id: m.id,
+      name: m.name,
+      phone: m.phone,
+      distance: Math.floor(Math.random() * 15) + 1, // Mock distance for now
+      status: m.status as 'available' | 'busy',
+    }));
   },
 
   // Calls
