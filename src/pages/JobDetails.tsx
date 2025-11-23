@@ -174,6 +174,7 @@ export default function JobDetails() {
             diagnosis={job.diagnosis}
             severity={job.severity}
             isAnalyzing={!job.diagnosis}
+            partsSearchResults={job.partsSearchResults}
           />
 
           <PhotoViewer photos={job.photos || []} />

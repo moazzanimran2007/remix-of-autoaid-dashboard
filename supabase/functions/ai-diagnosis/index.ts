@@ -280,6 +280,27 @@ Provide a comprehensive diagnostic analysis for this specific vehicle.`
 
     console.log('Job updated with diagnosis');
 
+    // Trigger parts search asynchronously if there are required parts
+    if (diagnosis.requiredParts && diagnosis.requiredParts.length > 0) {
+      console.log('Triggering parts search for', diagnosis.requiredParts.length, 'parts');
+      
+      // Fire and forget - don't wait for parts search to complete
+      supabase.functions.invoke('search-parts', {
+        body: {
+          jobId: jobId,
+          vehicleInfo: {
+            year: callInfo.carYear,
+            make: callInfo.carMake,
+            model: callInfo.carModel
+          },
+          parts: diagnosis.requiredParts
+        }
+      }).catch(error => {
+        console.error('Error invoking search-parts:', error);
+        // Don't fail the diagnosis if parts search fails
+      });
+    }
+
     return new Response(JSON.stringify({ success: true, diagnosis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

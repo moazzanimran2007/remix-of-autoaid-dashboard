@@ -43,6 +43,25 @@ export interface Job {
     preventiveMeasures?: string[];
     mechanicNotes?: string;
   };
+  partsSearchResults?: {
+    results: Array<{
+      partName: string;
+      suppliers: Array<{
+        supplierName: string;
+        partNumber: string;
+        price: number;
+        currency: string;
+        purchaseLink: string;
+        inStock: boolean;
+        shipping: string;
+        rating?: number;
+      }>;
+      searchedAt: string;
+      error?: string;
+    }>;
+    lastUpdated: string;
+    vehicleSearched: string;
+  };
 }
 
 export interface Mechanic {
@@ -73,6 +92,7 @@ function mapJobFromDb(dbJob: any): Job {
     photos: dbJob.photos,
     transcript: dbJob.transcript,
     diagnosis: dbJob.diagnosis,
+    partsSearchResults: dbJob.parts_search_results,
   };
 }
 
