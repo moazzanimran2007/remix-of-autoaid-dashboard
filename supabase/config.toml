@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.call-outbound]
 verify_jwt = false
+
+[functions.search-parts]
+verify_jwt = false

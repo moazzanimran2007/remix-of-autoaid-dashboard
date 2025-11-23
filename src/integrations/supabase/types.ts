@@ -71,6 +71,7 @@ export type Database = {
           id: string
           location_lat: number | null
           location_lng: number | null
+          parts_search_results: Json | null
           photos: string[] | null
           severity: Database["public"]["Enums"]["job_severity"] | null
           status: Database["public"]["Enums"]["job_status"] | null
@@ -90,6 +91,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          parts_search_results?: Json | null
           photos?: string[] | null
           severity?: Database["public"]["Enums"]["job_severity"] | null
           status?: Database["public"]["Enums"]["job_status"] | null
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          parts_search_results?: Json | null
           photos?: string[] | null
           severity?: Database["public"]["Enums"]["job_severity"] | null
           status?: Database["public"]["Enums"]["job_status"] | null

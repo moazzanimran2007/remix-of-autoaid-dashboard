@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package } from "lucide-react";
+import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package, ExternalLink } from "lucide-react";
 import { Job } from "@/lib/api";
 import {
   Accordion,
@@ -13,9 +13,10 @@ interface DiagnosisPanelProps {
   diagnosis?: Job['diagnosis'];
   severity: Job['severity'];
   isAnalyzing?: boolean;
+  partsSearchResults?: Job['partsSearchResults'];
 }
 
-export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false }: DiagnosisPanelProps) {
+export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults }: DiagnosisPanelProps) {
   if (isAnalyzing) {
     return (
       <Card className="p-6">
@@ -159,30 +160,104 @@ export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false }: Dia
               </AccordionItem>
             )}
 
-            {/* Required Parts */}
+            {/* Required Parts - Enhanced with Real Search Results */}
             {diagnosis.requiredParts && diagnosis.requiredParts.length > 0 && (
               <AccordionItem value="parts">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4" />
                     <span>Required Parts ({diagnosis.requiredParts.length})</span>
+                    {partsSearchResults && (
+                      <Badge variant="secondary" className="text-xs ml-2">
+                        Live Prices
+                      </Badge>
+                    )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="space-y-3">
-                    {diagnosis.requiredParts.map((part, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{part.partName}</p>
-                          <p className="text-xs text-muted-foreground">{part.estimatedCost}</p>
+                  <div className="space-y-4">
+                    {diagnosis.requiredParts.map((part, index) => {
+                      const searchResult = partsSearchResults?.results?.find(
+                        r => r.partName === part.partName
+                      );
+                      
+                      return (
+                        <div key={index} className="border border-border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="font-medium">{part.partName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                AI Estimate: {part.estimatedCost}
+                              </p>
+                            </div>
+                            {part.isCommon ? (
+                              <Badge variant="secondary">Common</Badge>
+                            ) : (
+                              <Badge variant="outline">Special Order</Badge>
+                            )}
+                          </div>
+                          
+                          {/* Real Supplier Results */}
+                          {searchResult?.suppliers && searchResult.suppliers.length > 0 ? (
+                            <div className="space-y-2 mt-3 pt-3 border-t">
+                              <p className="text-xs font-medium text-muted-foreground mb-2">
+                                Available from {searchResult.suppliers.length} supplier{searchResult.suppliers.length > 1 ? 's' : ''}:
+                              </p>
+                              {searchResult.suppliers.map((supplier, idx) => (
+                                <a
+                                  key={idx}
+                                  href={supplier.purchaseLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-between p-3 bg-primary/5 hover:bg-primary/10 rounded-md transition-colors group"
+                                >
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                                      {supplier.supplierName}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Part #: {supplier.partNumber}
+                                    </p>
+                                    {supplier.shipping && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {supplier.shipping}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-primary">
+                                      ${supplier.price.toFixed(2)}
+                                    </p>
+                                    <Badge 
+                                      variant={supplier.inStock ? "default" : "secondary"}
+                                      className="text-xs"
+                                    >
+                                      {supplier.inStock ? "In Stock" : "Order"}
+                                    </Badge>
+                                  </div>
+                                  <ExternalLink className="h-4 w-4 ml-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                </a>
+                              ))}
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Updated: {new Date(searchResult.searchedAt).toLocaleString()}
+                              </p>
+                            </div>
+                          ) : searchResult?.error ? (
+                            <div className="mt-3 pt-3 border-t">
+                              <p className="text-xs text-muted-foreground italic">
+                                Search unavailable - please contact supplier
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-3 pt-3 border-t">
+                              <p className="text-xs text-muted-foreground italic">
+                                Searching for suppliers...
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        {part.isCommon ? (
-                          <Badge variant="secondary" className="text-xs">Common</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">Special Order</Badge>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </AccordionContent>
               </AccordionItem>
