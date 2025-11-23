@@ -96,21 +96,36 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'system',
-            content: `You are an expert automotive diagnostic assistant. Based on the customer's description, provide:
-1) probable issue (brief, 1-2 sentences)
-2) severity (low, medium, or high)
-3) recommended tools (array of tool names)
-4) estimated repair time (e.g., "30 minutes", "2-3 hours")
+            content: `You are an expert master automotive diagnostic technician with 20+ years of experience across all makes and models.
 
-Be concise and practical. Focus on the most likely issue.`
+CRITICAL INSTRUCTIONS:
+1. Consider this SPECIFIC vehicle's known issues, recalls, TSBs (Technical Service Bulletins), and common failure patterns
+2. Reference make/model-specific components and known problems where relevant
+3. Provide detailed root cause analysis, not just symptoms
+4. Include step-by-step diagnostic procedures specific to this vehicle
+5. Consider parts availability and estimated costs for this specific make/model
+6. Identify safety concerns specific to this repair on this vehicle
+7. Provide alternative diagnoses with probability assessments
+8. Include preventive measures specific to this vehicle
+
+If vehicle details are unavailable (N/A), still provide thorough symptom-based analysis but note the limitation.
+
+Provide comprehensive, actionable diagnostic information that will help mechanics work efficiently and safely.`
           },
           {
             role: 'user',
-            content: `Vehicle: ${callInfo.carYear} ${callInfo.carMake} ${callInfo.carModel}\nSymptoms: ${callInfo.symptoms}`
+            content: `VEHICLE CONTEXT:
+- Make: ${callInfo.carMake}
+- Model: ${callInfo.carModel}
+- Year: ${callInfo.carYear}
+
+SYMPTOMS: ${callInfo.symptoms}
+
+Provide a comprehensive diagnostic analysis for this specific vehicle.`
           }
         ],
         tools: [
@@ -118,20 +133,97 @@ Be concise and practical. Focus on the most likely issue.`
             type: 'function',
             function: {
               name: 'provide_diagnosis',
-              description: 'Provide automotive diagnosis based on customer description',
+              description: 'Provide comprehensive automotive diagnosis with vehicle-specific analysis',
               parameters: {
                 type: 'object',
                 properties: {
-                  issue: { type: 'string', description: 'The probable issue (1-2 sentences)' },
-                  severity: { type: 'string', enum: ['low', 'medium', 'high'] },
+                  issue: { 
+                    type: 'string', 
+                    description: 'Detailed description of the probable issue (3-5 sentences with technical detail)' 
+                  },
+                  rootCause: { 
+                    type: 'string', 
+                    description: 'Deep analysis of why this is happening, considering physics, mechanics, and failure modes' 
+                  },
+                  makeModelSpecifics: { 
+                    type: 'string', 
+                    description: 'Known issues, recalls, TSBs, and common problems specific to this exact make/model/year. If N/A, state "Vehicle-specific details unavailable"' 
+                  },
+                  severity: { 
+                    type: 'string', 
+                    enum: ['low', 'medium', 'high'],
+                    description: 'Severity level of the issue' 
+                  },
+                  confidenceLevel: { 
+                    type: 'number', 
+                    description: 'Confidence in this diagnosis from 0-100' 
+                  },
+                  diagnosticSteps: { 
+                    type: 'array', 
+                    items: { type: 'string' },
+                    description: 'Detailed step-by-step diagnostic procedure specific to this vehicle and issue'
+                  },
                   recommendedTools: { 
                     type: 'array', 
                     items: { type: 'string' },
-                    description: 'List of recommended tools'
+                    description: 'Complete list of tools needed for diagnosis and repair'
                   },
-                  estimatedTime: { type: 'string', description: 'Estimated repair time' }
+                  estimatedTime: { 
+                    type: 'string', 
+                    description: 'Realistic time estimate for diagnosis and repair (e.g., "3-5 hours")' 
+                  },
+                  requiredParts: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        partName: { type: 'string' },
+                        estimatedCost: { type: 'string' },
+                        isCommon: { type: 'boolean', description: 'Whether this part is commonly available' }
+                      },
+                      required: ['partName', 'estimatedCost', 'isCommon']
+                    },
+                    description: 'List of parts likely needed with cost estimates'
+                  },
+                  commonIssuesForModel: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Historical common problems for this specific make/model/year'
+                  },
+                  safetyWarnings: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Any safety concerns or precautions specific to this repair'
+                  },
+                  alternativeDiagnoses: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        issue: { type: 'string' },
+                        probability: { type: 'string', enum: ['low', 'medium', 'high'] },
+                        distinguishingFactors: { type: 'string' }
+                      },
+                      required: ['issue', 'probability', 'distinguishingFactors']
+                    },
+                    description: 'Alternative possible diagnoses with probability assessment'
+                  },
+                  preventiveMeasures: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'How to prevent this issue in the future, specific to this vehicle'
+                  },
+                  mechanicNotes: { 
+                    type: 'string', 
+                    description: 'Special considerations, tips, or warnings for the mechanic performing this repair' 
+                  }
                 },
-                required: ['issue', 'severity', 'recommendedTools', 'estimatedTime'],
+                required: [
+                  'issue', 'rootCause', 'makeModelSpecifics', 'severity', 'confidenceLevel',
+                  'diagnosticSteps', 'recommendedTools', 'estimatedTime', 'requiredParts',
+                  'commonIssuesForModel', 'safetyWarnings', 'alternativeDiagnoses', 
+                  'preventiveMeasures', 'mechanicNotes'
+                ],
                 additionalProperties: false
               }
             }
@@ -165,11 +257,7 @@ Be concise and practical. Focus on the most likely issue.`
       car_model: callInfo.carModel,
       car_year: callInfo.carYear,
       symptoms: callInfo.symptoms,
-      diagnosis: {
-        issue: diagnosis.issue,
-        recommendedTools: diagnosis.recommendedTools,
-        estimatedTime: diagnosis.estimatedTime,
-      },
+      diagnosis: diagnosis, // Store the complete enhanced diagnosis
       severity: diagnosis.severity,
     };
 

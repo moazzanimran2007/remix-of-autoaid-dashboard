@@ -21,8 +21,27 @@ export interface Job {
   transcript?: string;
   diagnosis?: {
     issue: string;
+    rootCause?: string;
+    makeModelSpecifics?: string;
+    severity: 'low' | 'medium' | 'high';
+    confidenceLevel?: number;
+    diagnosticSteps?: string[];
     recommendedTools: string[];
     estimatedTime: string;
+    requiredParts?: Array<{
+      partName: string;
+      estimatedCost: string;
+      isCommon: boolean;
+    }>;
+    commonIssuesForModel?: string[];
+    safetyWarnings?: string[];
+    alternativeDiagnoses?: Array<{
+      issue: string;
+      probability: 'low' | 'medium' | 'high';
+      distinguishingFactors: string;
+    }>;
+    preventiveMeasures?: string[];
+    mechanicNotes?: string;
   };
 }
 
