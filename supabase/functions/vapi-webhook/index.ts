@@ -31,25 +31,24 @@ serve(async (req) => {
 
     // Extract call data
     const transcript = message.artifact?.transcript || '';
-    const customerPhone = message.call?.customer?.number || 'Unknown';
-    const customerName = message.call?.customer?.name || 'Unknown Customer';
+    const customerPhone = message.call?.customer?.number || null;
 
     if (!transcript) {
       throw new Error('No transcript found in webhook');
     }
 
-    console.log('Processing call:', { customerName, customerPhone });
+    console.log('Processing call transcript for phone:', customerPhone);
 
-    // Create initial job record
+    // Create initial job record with minimal data
+    // AI diagnosis will extract all details from transcript
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .insert({
-        customer_name: customerName,
         customer_phone: customerPhone,
         transcript: transcript,
         status: 'new',
         severity: 'low',
-        symptoms: 'Processing call transcript...',
+        symptoms: 'Analyzing call transcript...',
       })
       .select()
       .single();
