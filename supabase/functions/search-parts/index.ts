@@ -39,7 +39,7 @@ serve(async (req) => {
       
       try {
         // Call AGI API to search for parts
-        const response = await fetch('https://api.agi.so/v1/agent/run', {
+        const response = await fetch('https://api.agi.tech/v1/agent/run', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${agiApiKey}`,
