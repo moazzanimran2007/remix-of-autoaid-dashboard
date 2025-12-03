@@ -8,6 +8,7 @@ import JobsDashboard from "./pages/JobsDashboard";
 import JobDetails from "./pages/JobDetails";
 import MechanicsDirectory from "./pages/MechanicsDirectory";
 import Settings from "./pages/Settings";
+import ChatBot from "./pages/ChatBot";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
               <Route path="/jobs/:id" element={<JobDetails />} />
               <Route path="/mechanics" element={<MechanicsDirectory />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/chat" element={<ChatBot />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { ClipboardList, Users, Settings, Wrench } from "lucide-react";
+import { ClipboardList, Users, Settings, Wrench, MessageSquare } from "lucide-react";
 
 export function Sidebar() {
   return (
@@ -33,6 +33,16 @@ export function Sidebar() {
             >
               <Users className="h-5 w-5" />
               Mechanics
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/chat"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors"
+              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+            >
+              <MessageSquare className="h-5 w-5" />
+              AI Chat
             </NavLink>
           </li>
           <li>
