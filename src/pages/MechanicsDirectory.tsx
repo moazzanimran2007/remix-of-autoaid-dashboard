@@ -12,7 +12,7 @@ export default function MechanicsDirectory() {
   });
 
   const handleCall = (phone: string) => {
-    api.initiateCall(phone, 'mechanic');
+    window.open(`tel:${phone}`);
   };
 
   return (

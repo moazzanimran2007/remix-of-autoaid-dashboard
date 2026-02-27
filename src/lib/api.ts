@@ -177,13 +177,4 @@ export const api = {
     }));
   },
 
-  // Calls
-  initiateCall: async (phoneNumber: string, type: 'customer' | 'mechanic') => {
-    const { data, error } = await supabase.functions.invoke('call-outbound', {
-      body: { phoneNumber, type },
-    });
-    
-    if (error) throw error;
-    return data;
-  },
 };
