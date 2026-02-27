@@ -74,8 +74,8 @@ export default function JobDetails() {
 
   const handleCallCustomer = () => {
     if (job?.customerPhone) {
-      api.initiateCall(job.customerPhone, 'customer');
-      toast.success('Calling customer...');
+      window.open(`tel:${job.customerPhone}`);
+      toast.success('Opening phone dialer...');
     }
   };
 
