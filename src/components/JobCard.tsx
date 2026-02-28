@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/api";
 import { StatusTag } from "@/components/StatusTag";
 import { SeverityTag } from "@/components/SeverityTag";
-import { Clock, Car } from "lucide-react";
+import { Clock, Car, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
@@ -37,9 +38,17 @@ export function JobCard({ job }: JobCardProps) {
 
         <p className="text-foreground mb-3 line-clamp-2">{job.symptoms}</p>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          <span>{formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>{formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</span>
+          </div>
+          {job.toxicityFlag && (
+            <Badge variant="destructive" className="flex items-center gap-1 text-xs">
+              <ShieldAlert className="h-3 w-3" />
+              Flagged Call
+            </Badge>
+          )}
         </div>
       </Card>
     </Link>

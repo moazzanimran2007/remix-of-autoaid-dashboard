@@ -43,6 +43,13 @@ export interface Job {
     preventiveMeasures?: string[];
     mechanicNotes?: string;
   };
+  toxicityFlag?: boolean;
+  toxicityReason?: string | null;
+  photoAnalysis?: Array<{
+    imageUrl: string;
+    analysis: string;
+    analyzedAt: string;
+  }>;
   partsSearchResults?: {
     results: Array<{
       partName: string;
@@ -92,6 +99,9 @@ function mapJobFromDb(dbJob: any): Job {
     photos: dbJob.photos,
     transcript: dbJob.transcript,
     diagnosis: dbJob.diagnosis,
+    toxicityFlag: dbJob.toxicity_flag ?? false,
+    toxicityReason: dbJob.toxicity_reason ?? null,
+    photoAnalysis: dbJob.photo_analysis ?? [],
     partsSearchResults: dbJob.parts_search_results,
   };
 }
@@ -156,6 +166,26 @@ export const api = {
     
     if (error) throw error;
     return mapJobFromDb(data);
+  },
+
+  // Photo upload + Reka Vision analysis
+  uploadPhoto: async (jobId: string, file: File): Promise<string> => {
+    const ext = file.name.split('.').pop();
+    const path = `${jobId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('job-photos')
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from('job-photos').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  analyzePhoto: async (jobId: string, imageUrl: string, vehicleContext?: string): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('analyze-photo', {
+      body: { jobId, imageUrl, vehicleContext },
+    });
+    if (error) throw error;
+    return data.analysis as string;
   },
 
   // Mechanics

@@ -13,11 +13,11 @@ When a customer calls your Vapi AI voice agent, the system will:
 ## Step 1: Configure Vapi Webhook
 
 1. Go to your [Vapi Dashboard](https://dashboard.vapi.ai/assistants)
-2. Select your assistant
+2. Open assistant **`51fd787c-3f35-4b21-ac9e-e477f754cd65`**
 3. Navigate to the **Advanced** tab
 4. Set the **Server URL** to:
    ```
-   https://lzulavedhtmxwvadxxyv.supabase.co/functions/v1/vapi-webhook
+   https://fvcafjsjpludpqduyacv.supabase.co/functions/v1/vapi-webhook
    ```
 
 ## Step 2: Configure Server Messages
@@ -35,7 +35,7 @@ Make sure your assistant is configured to send the `end-of-call-report` message:
    ```json
    {
      "assistant": {
-       "serverUrl": "https://lzulavedhtmxwvadxxyv.supabase.co/functions/v1/vapi-webhook",
+       "serverUrl": "https://fvcafjsjpludpqduyacv.supabase.co/functions/v1/vapi-webhook",
        "serverMessages": ["end-of-call-report"]
      }
    }

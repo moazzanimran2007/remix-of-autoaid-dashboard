@@ -6,6 +6,93 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function sendWhatsAppPhotoRequest(
+  customerPhone: string,
+  customerName: string,
+  jobId: string
+): Promise<void> {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  const fromNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+
+  if (!accountSid || !authToken || !fromNumber) {
+    console.warn('Twilio credentials not set, skipping WhatsApp message');
+    return;
+  }
+
+  const toNumber = `whatsapp:${customerPhone}`;
+  const name = customerName || 'there';
+  const body = `Hi ${name}! 👋 Thanks for calling AutoAid. To help our mechanic diagnose your vehicle faster, please reply to this message with one or more photos of the issue. Our AI will analyze them instantly.`;
+
+  const params = new URLSearchParams({
+    From: fromNumber,
+    To: toNumber,
+    Body: body,
+  });
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    console.error('Twilio WhatsApp send error:', response.status, err);
+  } else {
+    console.log(`WhatsApp photo request sent to ${customerPhone}`);
+  }
+}
+
+async function checkToxicityWithModulate(
+  transcript: string,
+  sessionId: string
+): Promise<{ flagged: boolean; reason: string | null }> {
+  const modulateApiKey = Deno.env.get('MODULATE_API_KEY');
+  if (!modulateApiKey) {
+    console.warn('MODULATE_API_KEY not set, skipping toxicity check');
+    return { flagged: false, reason: null };
+  }
+
+  try {
+    const response = await fetch('https://api.modulate.ai/v1/analyze', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${modulateApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        transcript: transcript,
+        context: 'automotive_service_call',
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Modulate API error:', response.status, await response.text());
+      return { flagged: false, reason: null };
+    }
+
+    const result = await response.json();
+    console.log('Modulate toxicity result:', JSON.stringify(result));
+
+    // Modulate returns a flagged boolean and a reason/category
+    const flagged = result.flagged === true || result.toxic === true;
+    const reason = result.reason || result.category || result.label || null;
+
+    return { flagged, reason };
+  } catch (err) {
+    console.error('Error calling Modulate API:', err);
+    return { flagged: false, reason: null };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -59,6 +146,28 @@ serve(async (req) => {
     }
 
     console.log('Job created:', job.id);
+
+    // Send WhatsApp photo request to customer (fire and forget)
+    if (customerPhone) {
+      sendWhatsAppPhotoRequest(customerPhone, '', job.id)
+        .catch(err => console.error('WhatsApp send error (non-fatal):', err));
+    }
+
+    // Run Modulate toxicity check asynchronously and update job
+    checkToxicityWithModulate(transcript, job.id).then(async ({ flagged, reason }) => {
+      if (flagged) {
+        console.log(`Modulate flagged job ${job.id} for toxicity: ${reason}`);
+        const { error: updateError } = await supabase
+          .from('jobs')
+          .update({ toxicity_flag: true, toxicity_reason: reason })
+          .eq('id', job.id);
+        if (updateError) {
+          console.error('Error updating toxicity flag:', updateError);
+        }
+      } else {
+        console.log(`Modulate: job ${job.id} passed toxicity check`);
+      }
+    });
 
     // Trigger AI diagnosis asynchronously (fire and forget)
     supabase.functions.invoke('ai-diagnosis', {

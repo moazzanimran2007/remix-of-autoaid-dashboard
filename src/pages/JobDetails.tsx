@@ -11,7 +11,8 @@ import { TranscriptLog } from "@/components/TranscriptLog";
 import { DiagnosisPanel } from "@/components/DiagnosisPanel";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { MapComponent } from "@/components/MapComponent";
-import { ArrowLeft, Phone, CheckCircle } from "lucide-react";
+import { ArrowLeft, Phone, CheckCircle, ShieldAlert, Upload, Camera, Loader2 } from "lucide-react";
+import { useRef } from "react";
 import { toast } from "sonner";
 import {
   Select,
@@ -26,6 +27,8 @@ export default function JobDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedMechanic, setSelectedMechanic] = useState<string>("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ['job', id],
@@ -72,6 +75,26 @@ export default function JobDetails() {
     return unsubscribe;
   }, [id, queryClient]);
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setUploadingPhoto(true);
+    try {
+      const vehicleContext = job ? `${job.carYear} ${job.carMake} ${job.carModel}` : undefined;
+      const imageUrl = await api.uploadPhoto(id, file);
+      toast.success('Photo uploaded — analyzing with Reka Vision...');
+      await api.analyzePhoto(id, imageUrl, vehicleContext);
+      toast.success('Visual inspection complete');
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
+    } catch (err) {
+      toast.error('Failed to analyze photo');
+      console.error(err);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleCallCustomer = () => {
     if (job?.customerPhone) {
       window.open(`tel:${job.customerPhone}`);
@@ -106,6 +129,21 @@ export default function JobDetails() {
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Dashboard
       </Button>
+
+      {job.toxicityFlag && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-destructive">
+          <ShieldAlert className="h-5 w-5 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">Modulate: Toxic Content Detected</p>
+            {job.toxicityReason && (
+              <p className="text-sm mt-0.5">Reason: {job.toxicityReason}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              This call was flagged by Modulate's voice safety analysis. Review the transcript before assigning a mechanic.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -178,6 +216,74 @@ export default function JobDetails() {
           />
 
           <PhotoViewer photos={job.photos || []} />
+
+          {/* Reka Vision Photo Analysis */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold text-foreground">Visual Inspection</h2>
+              </div>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingPhoto}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploadingPhoto ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2" />
+                  )}
+                  {uploadingPhoto ? 'Analyzing...' : 'Upload Photo'}
+                </Button>
+              </div>
+            </div>
+
+            {(!job.photoAnalysis || job.photoAnalysis.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                <Camera className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Upload a photo of the vehicle issue</p>
+                <p className="text-xs mt-1">Reka Vision will analyze it automatically</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {job.photoAnalysis.map((entry, i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={entry.imageUrl}
+                        alt={`Inspection photo ${i + 1}`}
+                        className="w-32 h-24 object-cover rounded-lg border flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                            Reka Vision
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(entry.analyzedAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                          {entry.analysis}
+                        </p>
+                      </div>
+                    </div>
+                    {i < job.photoAnalysis!.length - 1 && <hr className="border-border" />}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
         </div>
 
         <div className="space-y-6">
