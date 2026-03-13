@@ -4,14 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Job } from "@/lib/api";
 import { wsManager, WebSocketEvent } from "@/lib/websocket";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { StatusTag } from "@/components/StatusTag";
 import { SeverityTag } from "@/components/SeverityTag";
 import { TranscriptLog } from "@/components/TranscriptLog";
 import { DiagnosisPanel } from "@/components/DiagnosisPanel";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { MapComponent } from "@/components/MapComponent";
-import { ArrowLeft, Phone, CheckCircle, ShieldAlert, Upload, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Phone, CheckCircle, ShieldAlert, Upload, Camera, Loader2, Car } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
 import {
@@ -59,7 +58,6 @@ export default function JobDetails() {
 
   useEffect(() => {
     if (!id) return;
-
     const unsubscribe = wsManager.subscribe((event: WebSocketEvent) => {
       if (
         (event.type === 'transcript' && event.jobId === id) ||
@@ -71,7 +69,6 @@ export default function JobDetails() {
         queryClient.invalidateQueries({ queryKey: ['job', id] });
       }
     });
-
     return unsubscribe;
   }, [id, queryClient]);
 
@@ -110,216 +107,183 @@ export default function JobDetails() {
 
   if (isLoading || !job) {
     return (
-      <div className="p-8">
+      <div className="p-4">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4" />
-          <div className="h-64 bg-muted rounded" />
+          <div className="h-8 bg-secondary rounded-xl w-1/3" />
+          <div className="h-48 bg-secondary rounded-2xl" />
+          <div className="h-48 bg-secondary rounded-2xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="mb-6"
+    <div className="px-4 pt-2 pb-4">
+      {/* Back */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Button>
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </button>
 
+      {/* Toxicity warning */}
       {job.toxicityFlag && (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-destructive">
-          <ShieldAlert className="h-5 w-5 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-semibold text-sm">Modulate: Toxic Content Detected</p>
-            {job.toxicityReason && (
-              <p className="text-sm mt-0.5">Reason: {job.toxicityReason}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              This call was flagged by Modulate's voice safety analysis. Review the transcript before assigning a mechanic.
-            </p>
+        <div className="card-social mb-4 p-3 border-destructive/40 bg-destructive/5">
+          <div className="flex items-start gap-2 text-destructive">
+            <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-xs">Toxic Content Detected</p>
+              {job.toxicityReason && <p className="text-xs mt-0.5">{job.toxicityReason}</p>}
+            </div>
           </div>
         </div>
       )}
 
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      {/* Header card */}
+      <div className="card-social p-4 mb-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Job #{job.id.slice(0, 8)}
+            <h1 className="text-lg font-bold text-foreground">
+              {job.customerName}
             </h1>
-            <div className="flex gap-2">
-              <SeverityTag severity={job.severity} />
-              <StatusTag status={job.status} />
-            </div>
+            <p className="text-sm text-muted-foreground">{job.customerPhone}</p>
           </div>
-          <div className="flex gap-3">
-            <Button onClick={handleCallCustomer} variant="outline">
-              <Phone className="h-4 w-4 mr-2" />
-              Call Customer
+          <div className="flex gap-1.5">
+            <SeverityTag severity={job.severity} />
+            <StatusTag status={job.status} />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-3">
+          <Car className="h-4 w-4" />
+          <span>{job.carYear} {job.carMake} {job.carModel}</span>
+        </div>
+
+        <p className="text-sm text-foreground mb-4">{job.symptoms}</p>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <Button
+            onClick={handleCallCustomer}
+            variant="outline"
+            size="sm"
+            className="flex-1 rounded-xl border-foreground/15"
+          >
+            <Phone className="h-4 w-4 mr-1.5" />
+            Call
+          </Button>
+          {job.status !== 'resolved' && (
+            <Button
+              onClick={() => completeJobMutation.mutate()}
+              size="sm"
+              className="flex-1 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <CheckCircle className="h-4 w-4 mr-1.5" />
+              Complete
             </Button>
-            {job.status !== 'resolved' && (
-              <Button
-                onClick={() => completeJobMutation.mutate()}
-                variant="default"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark Completed
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Customer Information</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Name</p>
-                <p className="text-foreground font-medium">{job.customerName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Phone</p>
-                <p className="text-foreground font-medium">{job.customerPhone}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Vehicle</p>
-                <p className="text-foreground font-medium">
-                  {job.carYear} {job.carMake} {job.carModel}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Reported</p>
-                <p className="text-foreground font-medium">
-                  {new Date(job.createdAt).toLocaleString()}
-                </p>
-              </div>
+      {/* Content sections */}
+      <div className="space-y-4">
+        <TranscriptLog transcript={job.transcript || ''} />
+
+        <DiagnosisPanel
+          diagnosis={job.diagnosis}
+          severity={job.severity}
+          isAnalyzing={!job.diagnosis}
+          partsSearchResults={job.partsSearchResults}
+        />
+
+        <PhotoViewer photos={job.photos || []} />
+
+        {/* Visual Inspection */}
+        <div className="card-social p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Camera className="h-4 w-4 text-accent" />
+              <h2 className="font-semibold text-foreground">Visual Inspection</h2>
             </div>
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground mb-1">Symptoms</p>
-              <p className="text-foreground">{job.symptoms}</p>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={uploadingPhoto}
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-xl border-foreground/15 text-xs"
+              >
+                {uploadingPhoto ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                {uploadingPhoto ? 'Analyzing...' : 'Upload'}
+              </Button>
             </div>
-          </Card>
+          </div>
 
-          <TranscriptLog transcript={job.transcript || ''} />
-
-          <DiagnosisPanel
-            diagnosis={job.diagnosis}
-            severity={job.severity}
-            isAnalyzing={!job.diagnosis}
-            partsSearchResults={job.partsSearchResults}
-          />
-
-          <PhotoViewer photos={job.photos || []} />
-
-          {/* Reka Vision Photo Analysis */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold text-foreground">Visual Inspection</h2>
-              </div>
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadingPhoto}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  {uploadingPhoto ? 'Analyzing...' : 'Upload Photo'}
-                </Button>
-              </div>
+          {(!job.photoAnalysis || job.photoAnalysis.length === 0) ? (
+            <div className="text-center py-6 text-muted-foreground border border-dashed border-foreground/15 rounded-xl">
+              <Camera className="h-8 w-8 mx-auto mb-1.5 opacity-30" />
+              <p className="text-xs">Upload a photo for AI analysis</p>
             </div>
-
-            {(!job.photoAnalysis || job.photoAnalysis.length === 0) ? (
-              <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                <Camera className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Upload a photo of the vehicle issue</p>
-                <p className="text-xs mt-1">Reka Vision will analyze it automatically</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {job.photoAnalysis.map((entry, i) => (
-                  <div key={i} className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={entry.imageUrl}
-                        alt={`Inspection photo ${i + 1}`}
-                        className="w-32 h-24 object-cover rounded-lg border flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                            Reka Vision
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(entry.analyzedAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                          {entry.analysis}
-                        </p>
-                      </div>
+          ) : (
+            <div className="space-y-4">
+              {job.photoAnalysis.map((entry, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <img src={entry.imageUrl} alt={`Photo ${i + 1}`} className="w-20 h-16 object-cover rounded-xl border border-foreground/10 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="chip-pill border-accent/30 text-accent text-[10px] px-2 py-0.5 mb-1 inline-block">Reka Vision</span>
+                      <p className="text-xs text-foreground leading-relaxed">{entry.analysis}</p>
                     </div>
-                    {i < job.photoAnalysis!.length - 1 && <hr className="border-border" />}
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                  {i < job.photoAnalysis!.length - 1 && <hr className="border-foreground/5" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="space-y-6">
-          <MapComponent location={job.location} />
+        <MapComponent location={job.location} />
 
-          <Card className="p-6">
-            <h3 className="font-semibold text-lg text-foreground mb-4">Assign Mechanic</h3>
-            {job.assignedMechanic ? (
-              <div className="bg-muted rounded-lg p-4">
-                <p className="text-sm text-muted-foreground mb-1">Assigned to</p>
-                <p className="text-foreground font-medium">{job.assignedMechanic}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Select value={selectedMechanic} onValueChange={setSelectedMechanic}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a mechanic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mechanics.map((mechanic) => (
-                      <SelectItem key={mechanic.id} value={mechanic.id}>
-                        {mechanic.name} - {mechanic.distance}km away
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={handleAssignMechanic}
-                  disabled={!selectedMechanic || assignMutation.isPending}
-                  className="w-full"
-                >
-                  Assign Mechanic
-                </Button>
-              </div>
-            )}
-          </Card>
+        {/* Assign Mechanic */}
+        <div className="card-social p-4">
+          <h3 className="font-semibold text-foreground mb-3">Assign Mechanic</h3>
+          {job.assignedMechanic ? (
+            <div className="bg-secondary rounded-xl p-3">
+              <p className="text-xs text-muted-foreground">Assigned to</p>
+              <p className="text-sm font-medium text-foreground">{job.assignedMechanic}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Select value={selectedMechanic} onValueChange={setSelectedMechanic}>
+                <SelectTrigger className="rounded-xl border-foreground/15">
+                  <SelectValue placeholder="Select a mechanic" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mechanics.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} — {m.distance}km
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleAssignMechanic}
+                disabled={!selectedMechanic || assignMutation.isPending}
+                className="w-full rounded-xl bg-primary text-primary-foreground"
+              >
+                Assign
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

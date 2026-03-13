@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,13 +27,10 @@ export default function ChatBot() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
-
     const userMessage = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
-
-    // Add empty assistant message that we'll stream into
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
@@ -44,47 +40,31 @@ export default function ChatBot() {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage }),
       });
 
-      // Save the run ID from the first response
       if (isFirstMessage) {
         const newRunId = response.headers.get("X-Toolhouse-Run-ID");
-        if (newRunId) {
-          setRunId(newRunId);
-        }
+        if (newRunId) setRunId(newRunId);
       }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Handle streaming response
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");
-
       const decoder = new TextDecoder();
       let accumulatedContent = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         const chunk = decoder.decode(value, { stream: true });
         accumulatedContent += chunk;
-
-        // Update the last assistant message with accumulated content
         setMessages((prev) => {
           const newMessages = [...prev];
           const lastIndex = newMessages.length - 1;
           if (newMessages[lastIndex]?.role === "assistant") {
-            newMessages[lastIndex] = {
-              ...newMessages[lastIndex],
-              content: accumulatedContent,
-            };
+            newMessages[lastIndex] = { ...newMessages[lastIndex], content: accumulatedContent };
           }
           return newMessages;
         });
@@ -95,10 +75,7 @@ export default function ChatBot() {
         const newMessages = [...prev];
         const lastIndex = newMessages.length - 1;
         if (newMessages[lastIndex]?.role === "assistant") {
-          newMessages[lastIndex] = {
-            ...newMessages[lastIndex],
-            content: "Sorry, there was an error processing your message. Please try again.",
-          };
+          newMessages[lastIndex] = { ...newMessages[lastIndex], content: "Sorry, there was an error. Please try again." };
         }
         return newMessages;
       });
@@ -108,95 +85,51 @@ export default function ChatBot() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   return (
-    <div className="relative flex flex-col h-screen p-6 overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 -z-10">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-        
-        {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-accent/20 rounded-full blur-3xl animate-pulse [animation-delay:1s]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-3xl animate-pulse [animation-delay:2s]" />
-        
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/30 rounded-full animate-float"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`,
-            }}
-          />
-        ))}
-        
-        {/* Grid overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px),
-                              linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-          }}
-        />
-      </div>
+    <div className="flex flex-col h-[calc(100vh-8rem)] px-4 pt-2">
+      <h1 className="text-xl font-bold text-foreground mb-2">
+        <span>Mech</span><span className="text-primary">AI</span> Chat
+      </h1>
 
-      <div className="mb-6 relative">
-        <h1 className="text-3xl font-bold text-foreground bg-clip-text">MechAI Assistant</h1>
-        <p className="text-muted-foreground">Ask me anything about vehicle diagnostics and repairs</p>
-      </div>
-
-      <Card className="flex-1 flex flex-col overflow-hidden backdrop-blur-sm bg-card/80 border-border/50 shadow-2xl">
+      <div className="card-social flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <div className="relative">
-                <Bot className="h-16 w-16 mb-4 opacity-50" />
-                <div className="absolute inset-0 h-16 w-16 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-12">
+              <div className="h-14 w-14 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                <Bot className="h-7 w-7 text-accent" />
               </div>
-              <p className="text-lg">Start a conversation</p>
-              <p className="text-sm">Ask about vehicle diagnostics, repair estimates, or parts.</p>
+              <p className="font-semibold text-foreground">Start a conversation</p>
+              <p className="text-xs mt-1">Vehicle diagnostics, repair estimates, parts lookup</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  } animate-fade-in`}
+                  className={`flex gap-2.5 ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}
                 >
                   {message.role === "assistant" && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/25">
-                      <Bot className="h-5 w-5 text-primary-foreground" />
+                    <div className="shrink-0 w-7 h-7 rounded-full bg-accent flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-accent-foreground" />
                     </div>
                   )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-lg ${
-                      message.role === "user"
-                        ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-primary/25"
-                        : "bg-muted/80 text-foreground backdrop-blur-sm border border-border/50"
-                    }`}
-                  >
+                  <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground"
+                  }`}>
                     {message.role === "assistant" ? (
                       message.content ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-1 [&_p]:mt-0">
                           <ReactMarkdown>{message.content}</ReactMarkdown>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Thinking...</span>
+                        <div className="flex items-center gap-1.5">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="text-xs">Thinking...</span>
                         </div>
                       )
                     ) : (
@@ -204,8 +137,8 @@ export default function ChatBot() {
                     )}
                   </div>
                   {message.role === "user" && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-secondary/70 flex items-center justify-center shadow-lg">
-                      <User className="h-5 w-5 text-secondary-foreground" />
+                    <div className="shrink-0 w-7 h-7 rounded-full bg-secondary flex items-center justify-center">
+                      <User className="h-4 w-4 text-foreground" />
                     </div>
                   )}
                 </div>
@@ -214,30 +147,26 @@ export default function ChatBot() {
           )}
         </ScrollArea>
 
-        <div className="p-4 border-t border-border/50 bg-background/50 backdrop-blur-sm">
+        <div className="p-3 border-t border-foreground/10">
           <div className="flex gap-2">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
+              placeholder="Ask about a repair..."
               disabled={isLoading}
-              className="flex-1 bg-background/80 border-border/50 focus:border-primary/50"
+              className="flex-1 bg-background border-foreground/15 rounded-xl h-10"
             />
-            <Button 
-              onClick={sendMessage} 
+            <Button
+              onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 transition-all duration-300"
+              className="h-10 w-10 rounded-xl bg-primary text-primary-foreground p-0"
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

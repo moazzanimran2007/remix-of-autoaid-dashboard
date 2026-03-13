@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, Mechanic } from "@/lib/api";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Phone, MapPin } from "lucide-react";
 
@@ -16,58 +14,55 @@ export default function MechanicsDirectory() {
   };
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Mechanics Directory</h1>
-        <p className="text-muted-foreground">View and manage your network of mechanics</p>
-      </div>
+    <div className="px-4 pt-4">
+      <h1 className="text-xl font-bold text-foreground mb-1">Mechanics</h1>
+      <p className="text-sm text-muted-foreground mb-4">Your network</p>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-secondary animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : mechanics.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">No mechanics found</p>
+        <div className="text-center py-16">
+          <p className="text-muted-foreground">No mechanics found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {mechanics.map((mechanic: Mechanic) => (
-            <Card key={mechanic.id} className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg text-foreground mb-1">
-                    {mechanic.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{mechanic.phone}</p>
+            <div key={mechanic.id} className="card-social p-4">
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                <div className="h-11 w-11 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-foreground shrink-0">
+                  {mechanic.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </div>
-                <Badge
-                  className={
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm">{mechanic.name}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="h-3 w-3" />
+                    <span className="font-numbers">{mechanic.distance} km</span>
+                  </div>
+                </div>
+                <span
+                  className={`chip-pill text-[10px] border-transparent ${
                     mechanic.status === 'available'
-                      ? 'bg-status-resolved text-white'
-                      : 'bg-muted text-foreground'
-                  }
+                      ? 'bg-status-resolved text-accent-foreground'
+                      : 'bg-secondary text-muted-foreground'
+                  }`}
                 >
-                  {mechanic.status}
-                </Badge>
+                  {mechanic.status === 'available' ? 'Available' : 'Busy'}
+                </span>
+                <Button
+                  onClick={() => handleCall(mechanic.phone)}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-foreground/15 h-8 w-8 p-0"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                </Button>
               </div>
-
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                <MapPin className="h-4 w-4" />
-                <span>{mechanic.distance} km away</span>
-              </div>
-
-              <Button
-                onClick={() => handleCall(mechanic.phone)}
-                variant="outline"
-                className="w-full"
-              >
-                <Phone className="h-4 w-4 mr-2" />
-                Call Mechanic
-              </Button>
-            </Card>
+            </div>
           ))}
         </div>
       )}

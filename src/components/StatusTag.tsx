@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Job } from "@/lib/api";
 
 interface StatusTagProps {
@@ -6,30 +5,17 @@ interface StatusTagProps {
 }
 
 const statusConfig = {
-  new: {
-    label: 'New',
-    className: 'bg-status-new text-white',
-  },
-  assigned: {
-    label: 'Assigned',
-    className: 'bg-status-assigned text-white',
-  },
-  'in-progress': {
-    label: 'In Progress',
-    className: 'bg-status-in-progress text-white',
-  },
-  resolved: {
-    label: 'Resolved',
-    className: 'bg-status-resolved text-white',
-  },
+  new: { label: 'New', className: 'bg-accent text-accent-foreground' },
+  assigned: { label: 'Assigned', className: 'bg-primary text-primary-foreground' },
+  'in-progress': { label: 'In Progress', className: 'bg-status-in-progress text-accent-foreground' },
+  resolved: { label: 'Resolved', className: 'bg-status-resolved text-accent-foreground' },
 };
 
 export function StatusTag({ status }: StatusTagProps) {
   const config = statusConfig[status];
-  
   return (
-    <Badge className={config.className}>
+    <span className={`chip-pill border-transparent text-xs font-semibold ${config.className}`}>
       {config.label}
-    </Badge>
+    </span>
   );
 }
