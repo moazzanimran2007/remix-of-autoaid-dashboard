@@ -76,8 +76,6 @@ export type Database = {
           severity: Database["public"]["Enums"]["job_severity"] | null
           status: Database["public"]["Enums"]["job_status"] | null
           symptoms: string | null
-          toxicity_flag: boolean | null
-          toxicity_reason: string | null
           transcript: string | null
           updated_at: string | null
         }
@@ -98,8 +96,6 @@ export type Database = {
           severity?: Database["public"]["Enums"]["job_severity"] | null
           status?: Database["public"]["Enums"]["job_status"] | null
           symptoms?: string | null
-          toxicity_flag?: boolean | null
-          toxicity_reason?: string | null
           transcript?: string | null
           updated_at?: string | null
         }
@@ -120,8 +116,6 @@ export type Database = {
           severity?: Database["public"]["Enums"]["job_severity"] | null
           status?: Database["public"]["Enums"]["job_status"] | null
           symptoms?: string | null
-          toxicity_flag?: boolean | null
-          toxicity_reason?: string | null
           transcript?: string | null
           updated_at?: string | null
         }
