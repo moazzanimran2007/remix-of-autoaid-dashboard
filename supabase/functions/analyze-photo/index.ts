@@ -3,8 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,28 +22,29 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const rekaApiKey = Deno.env.get('REKA_API_KEY')!;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!rekaApiKey) {
-      throw new Error('REKA_API_KEY secret is not set');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Analyzing photo with Reka Vision for job:', jobId, 'image:', imageUrl);
+    console.log('Analyzing photo with Lovable AI for job:', jobId, 'image:', imageUrl);
 
     const vehicleInfo = vehicleContext
       ? `Vehicle: ${vehicleContext}`
       : 'Vehicle details not provided.';
 
-    const rekaResponse = await fetch('https://api.reka.ai/v1/chat/completions', {
+    // Use Gemini 2.5 Pro for image analysis (best multimodal)
+    const aiResponse = await fetch(AI_GATEWAY, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${rekaApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'reka-core',
+        model: 'google/gemini-2.5-pro',
         messages: [
           {
             role: 'user',
@@ -70,20 +73,20 @@ Be specific and technical. If the image is unclear or not automotive-related, st
       }),
     });
 
-    if (!rekaResponse.ok) {
-      const errorText = await rekaResponse.text();
-      console.error('Reka Vision API error:', rekaResponse.status, errorText);
-      throw new Error(`Reka Vision API error: ${rekaResponse.status} - ${errorText}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Lovable AI Vision error:', aiResponse.status, errorText);
+      throw new Error(`Lovable AI Vision error: ${aiResponse.status} - ${errorText}`);
     }
 
-    const rekaData = await rekaResponse.json();
-    const analysisText = rekaData.choices?.[0]?.message?.content;
+    const aiData = await aiResponse.json();
+    const analysisText = aiData.choices?.[0]?.message?.content;
 
     if (!analysisText) {
-      throw new Error('No analysis returned from Reka Vision');
+      throw new Error('No analysis returned from AI Vision');
     }
 
-    console.log('Reka Vision analysis complete');
+    console.log('AI Vision analysis complete');
 
     // Fetch current photo_analysis array and append the new result
     const { data: jobData } = await supabase
@@ -109,7 +112,7 @@ Be specific and technical. If the image is unclear or not automotive-related, st
       throw updateError;
     }
 
-    console.log('Job updated with Reka Vision analysis');
+    console.log('Job updated with AI Vision analysis');
 
     return new Response(
       JSON.stringify({ success: true, analysis: analysisText }),
