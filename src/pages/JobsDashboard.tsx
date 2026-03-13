@@ -3,15 +3,24 @@ import { useQuery } from "@tanstack/react-query";
 import { api, Job } from "@/lib/api";
 import { wsManager, WebSocketEvent } from "@/lib/websocket";
 import { JobCard } from "@/components/JobCard";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, RefreshCw } from "lucide-react";
+import { Search } from "lucide-react";
 import { toast } from "sonner";
+
+const FILTERS = ["All", "Jobs", "Diagnostics", "Mechanics", "Results"] as const;
+
+function mapFilterToStatus(filter: string): string | null {
+  if (filter === "All") return null;
+  if (filter === "Jobs") return "new";
+  if (filter === "Diagnostics") return "assigned";
+  if (filter === "Mechanics") return "in-progress";
+  if (filter === "Results") return "resolved";
+  return null;
+}
 
 export default function JobsDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [activeFilter, setActiveFilter] = useState<string>("All");
   const { data: jobs = [], isLoading, refetch } = useQuery({
     queryKey: ['jobs'],
     queryFn: api.getJobs,
@@ -19,7 +28,6 @@ export default function JobsDashboard() {
 
   useEffect(() => {
     wsManager.connect();
-
     const unsubscribe = wsManager.subscribe((event: WebSocketEvent) => {
       if (event.type === 'job_created') {
         toast.success('New job received!');
@@ -28,68 +36,60 @@ export default function JobsDashboard() {
         refetch();
       }
     });
-
-    return () => {
-      unsubscribe();
-    };
+    return () => { unsubscribe(); };
   }, [refetch]);
 
   const filteredJobs = jobs.filter((job) => {
-    const matchesSearch = 
+    const matchesSearch =
       job.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.carModel.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.symptoms.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = filterStatus === "all" || job.status === filterStatus;
-
+    const status = mapFilterToStatus(activeFilter);
+    const matchesStatus = !status || job.status === status;
     return matchesSearch && matchesStatus;
   });
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Jobs Dashboard</h1>
-        <p className="text-muted-foreground">Monitor and manage all incoming customer requests</p>
+    <div className="px-4 pt-4">
+      {/* Filter strip */}
+      <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setActiveFilter(f)}
+            className={`chip-pill whitespace-nowrap ${
+              activeFilter === f ? "chip-active" : "chip-inactive"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by customer, car model, or symptoms..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={() => refetch()} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search jobs..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-card border-foreground/15 rounded-xl h-11"
+        />
       </div>
 
-      <Tabs value={filterStatus} onValueChange={setFilterStatus} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="new">New</TabsTrigger>
-          <TabsTrigger value="assigned">Assigned</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="resolved">Resolved</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
+      {/* Feed */}
       {isLoading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+        <div className="space-y-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-52 bg-secondary animate-pulse rounded-2xl" />
           ))}
         </div>
       ) : filteredJobs.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-16">
           <p className="text-muted-foreground text-lg">No jobs found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="space-y-4 pb-4">
           {filteredJobs.map((job) => (
             <JobCard key={job.id} job={job} />
           ))}

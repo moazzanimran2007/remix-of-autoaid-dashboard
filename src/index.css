@@ -2,102 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    --background: 43 29% 93%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 205 87% 32%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 68 100% 47%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 210 20% 95%;
-    --secondary-foreground: 215 25% 15%;
+    --secondary: 43 20% 88%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 43 15% 90%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 25 95% 53%;
+    --accent: 265 72% 54%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 205 87% 32%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 68 100% 47%;
 
-    --radius: 0.5rem;
+    --radius: 9999px;
 
     /* Severity levels */
-    --severity-low: 48 96% 53%;
+    --severity-low: 68 100% 47%;
     --severity-medium: 25 95% 53%;
     --severity-high: 0 85% 60%;
 
     /* Status colors */
-    --status-new: 205 87% 32%;
-    --status-assigned: 48 96% 53%;
+    --status-new: 265 72% 54%;
+    --status-assigned: 68 100% 47%;
     --status-in-progress: 25 95% 53%;
     --status-resolved: 142 76% 36%;
 
-    /* Sidebar */
-    --sidebar-background: 215 30% 12%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 205 87% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 18%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 215 25% 20%;
-    --sidebar-ring: 205 87% 42%;
+    /* Sidebar - not used in new design but kept for compatibility */
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 43 29% 93%;
+    --sidebar-primary: 68 100% 47%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 43 29% 93%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 68 100% 47%;
   }
 
   .dark {
-    --background: 215 30% 10%;
-    --foreground: 210 20% 90%;
+    --background: 0 0% 8%;
+    --foreground: 43 29% 93%;
 
-    --card: 215 28% 14%;
-    --card-foreground: 210 20% 90%;
+    --card: 0 0% 12%;
+    --card-foreground: 43 29% 93%;
 
-    --popover: 215 28% 14%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 43 29% 93%;
 
-    --primary: 205 87% 42%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 68 100% 47%;
+    --primary-foreground: 0 0% 10%;
 
-    --secondary: 215 25% 18%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 43 29% 93%;
 
-    --muted: 215 25% 18%;
-    --muted-foreground: 215 15% 60%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 25 95% 53%;
+    --accent: 265 72% 54%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 22%;
-    --ring: 205 87% 42%;
+    --border: 0 0% 25%;
+    --input: 0 0% 25%;
+    --ring: 68 100% 47%;
 
-    /* Sidebar dark mode */
-    --sidebar-background: 215 32% 8%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 205 87% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 30% 12%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 215 28% 16%;
-    --sidebar-ring: 205 87% 42%;
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 43 29% 93%;
+    --sidebar-primary: 68 100% 47%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 43 29% 93%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 68 100% 47%;
   }
 }
 
@@ -108,5 +103,28 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  .font-numbers {
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .card-social {
+    @apply bg-card rounded-2xl border-[1.5px] border-foreground/15;
+  }
+  
+  .chip-pill {
+    @apply px-4 py-1.5 rounded-full text-sm font-medium border-[1.5px] transition-colors;
+  }
+
+  .chip-active {
+    @apply bg-primary text-primary-foreground border-primary;
+  }
+
+  .chip-inactive {
+    @apply bg-transparent text-muted-foreground border-foreground/15 hover:border-foreground/30;
   }
 }
