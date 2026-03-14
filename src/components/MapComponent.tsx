@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface MapComponentProps {
@@ -80,17 +80,39 @@ export function MapComponent({ location }: MapComponentProps) {
           title="Location map"
         />
       </div>
-      <div className="flex items-center justify-between mt-1.5">
-        {location && (
-          <p className="text-[10px] text-muted-foreground font-numbers">
-            Customer: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-          </p>
-        )}
-        {userLocation && (
-          <p className="text-[10px] text-accent font-numbers">
-            You: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-          </p>
-        )}
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center gap-1.5">
+          {location && (
+            <p className="text-[10px] text-muted-foreground font-numbers">
+              {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+            </p>
+          )}
+          {userLocation && (
+            <p className="text-[10px] text-accent font-numbers">
+              You: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          <a
+            href={`https://www.google.com/maps?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-xl border border-foreground/15 bg-background px-2.5 py-1 text-[10px] font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Navigation className="h-3 w-3" />
+            Google Maps
+          </a>
+          <a
+            href={`https://maps.apple.com/?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-xl border border-foreground/15 bg-background px-2.5 py-1 text-[10px] font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Navigation className="h-3 w-3" />
+            Apple Maps
+          </a>
+        </div>
       </div>
     </div>
   );
