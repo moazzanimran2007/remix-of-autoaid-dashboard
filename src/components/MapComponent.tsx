@@ -94,24 +94,20 @@ export function MapComponent({ location }: MapComponentProps) {
           )}
         </div>
         <div className="flex gap-1.5">
-          <a
-            href={`https://www.google.com/maps?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => window.open(`https://www.google.com/maps?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`, '_blank')}
             className="inline-flex items-center gap-1 rounded-xl border border-foreground/15 bg-background px-2.5 py-1 text-[10px] font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <Navigation className="h-3 w-3" />
             Google Maps
-          </a>
-          <a
-            href={`https://maps.apple.com/?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          </button>
+          <button
+            onClick={() => window.open(`https://maps.apple.com/?q=${(location || userLocation)!.lat},${(location || userLocation)!.lng}`, '_blank')}
             className="inline-flex items-center gap-1 rounded-xl border border-foreground/15 bg-background px-2.5 py-1 text-[10px] font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <Navigation className="h-3 w-3" />
             Apple Maps
-          </a>
+          </button>
         </div>
       </div>
     </div>
