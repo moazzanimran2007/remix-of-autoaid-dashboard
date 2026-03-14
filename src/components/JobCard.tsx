@@ -102,18 +102,7 @@ export function JobCard({ job }: JobCardProps) {
       </Link>
 
       {/* Post footer */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-foreground/5">
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
-          <Heart className="h-3.5 w-3.5" />
-          <span className="font-numbers">0</span>
-        </button>
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors">
-          <MessageCircle className="h-3.5 w-3.5" />
-          <span className="font-numbers">0</span>
-        </button>
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <Share2 className="h-3.5 w-3.5" />
-        </button>
+      <div className="flex items-center justify-end mt-3 pt-2 border-t border-foreground/5">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span className="font-numbers">{formatDistanceToNow(new Date(job.createdAt))}</span>
