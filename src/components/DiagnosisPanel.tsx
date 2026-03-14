@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package, ExternalLink } from "lucide-react";
-import { Job } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package, ExternalLink, BookCheck, Loader2 } from "lucide-react";
+import { Job, api } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
@@ -13,6 +16,7 @@ interface DiagnosisPanelProps {
   severity: Job['severity'];
   isAnalyzing?: boolean;
   partsSearchResults?: Job['partsSearchResults'];
+  job?: Job;
 }
 
 export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults }: DiagnosisPanelProps) {
