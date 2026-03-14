@@ -1,7 +1,7 @@
 import { Job } from "@/lib/api";
 import { StatusTag } from "@/components/StatusTag";
 import { SeverityTag } from "@/components/SeverityTag";
-import { Clock, Car, Zap, Heart, MessageCircle, Share2, ShieldAlert } from "lucide-react";
+import { Clock, Car, Zap, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
@@ -26,7 +26,11 @@ export function JobCard({ job }: JobCardProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
           <Zap className="h-3.5 w-3.5" />
-          {job.diagnosis ? 'AI Diagnosed' : 'New Job'}
+          {job.diagnosis
+            ? 'AI Diagnosed'
+            : Date.now() - new Date(job.createdAt).getTime() < 2 * 60 * 60 * 1000
+              ? 'New Job'
+              : 'Job'}
         </div>
         <span className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
@@ -98,18 +102,7 @@ export function JobCard({ job }: JobCardProps) {
       </Link>
 
       {/* Post footer */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-foreground/5">
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
-          <Heart className="h-3.5 w-3.5" />
-          <span className="font-numbers">0</span>
-        </button>
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-accent transition-colors">
-          <MessageCircle className="h-3.5 w-3.5" />
-          <span className="font-numbers">0</span>
-        </button>
-        <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <Share2 className="h-3.5 w-3.5" />
-        </button>
+      <div className="flex items-center justify-end mt-3 pt-2 border-t border-foreground/5">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span className="font-numbers">{formatDistanceToNow(new Date(job.createdAt))}</span>
