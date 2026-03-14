@@ -47,6 +47,7 @@ export default function JobDetails() {
       toast.success('Mechanic assigned successfully');
       queryClient.invalidateQueries({ queryKey: ['job', id] });
     },
+    onError: (err: Error) => toast.error(`Failed to assign mechanic: ${err.message}`),
   });
 
   const completeJobMutation = useMutation({
