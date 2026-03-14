@@ -56,6 +56,7 @@ export default function JobDetails() {
       toast.success('Job marked as completed');
       queryClient.invalidateQueries({ queryKey: ['job', id] });
     },
+    onError: (err: Error) => toast.error(`Failed to update job: ${err.message}`),
   });
 
   useEffect(() => {
