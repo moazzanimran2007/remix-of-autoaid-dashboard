@@ -1,7 +1,7 @@
 import { Job } from "@/lib/api";
 import { StatusTag } from "@/components/StatusTag";
 import { SeverityTag } from "@/components/SeverityTag";
-import { Clock, Car, Zap, Heart, MessageCircle, Share2, ShieldAlert } from "lucide-react";
+import { Clock, Car, Zap, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
