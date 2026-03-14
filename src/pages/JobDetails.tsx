@@ -79,7 +79,9 @@ export default function JobDetails() {
     try {
       const vehicleContext = job ? `${job.carYear} ${job.carMake} ${job.carModel}` : undefined;
       const imageUrl = await api.uploadPhoto(id, file);
-      toast.success('Photo uploaded — analyzing with Reka Vision...');
+      // Photo is now saved to the DB — refresh so it appears in the gallery immediately
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
+      toast.success('Photo uploaded — analyzing with AI Vision...');
       await api.analyzePhoto(id, imageUrl, vehicleContext);
       toast.success('Visual inspection complete');
       queryClient.invalidateQueries({ queryKey: ['job', id] });
@@ -241,7 +243,7 @@ export default function JobDetails() {
                   <div className="flex items-start gap-3">
                     <img src={entry.imageUrl} alt={`Photo ${i + 1}`} className="w-20 h-16 object-cover rounded-xl border border-foreground/10 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <span className="chip-pill border-accent/30 text-accent text-[10px] px-2 py-0.5 mb-1 inline-block">Reka Vision</span>
+                      <span className="chip-pill border-accent/30 text-accent text-[10px] px-2 py-0.5 mb-1 inline-block">AI Vision</span>
                       <p className="text-xs text-foreground leading-relaxed">{entry.analysis}</p>
                     </div>
                   </div>
