@@ -197,14 +197,80 @@ export const api = {
     
     if (error) throw error;
     
-    // Transform to match frontend expectations
     return data.map(m => ({
       id: m.id,
       name: m.name,
       phone: m.phone,
-      distance: Math.floor(Math.random() * 15) + 1, // Mock distance for now
+      distance: Math.floor(Math.random() * 15) + 1,
       status: m.status as 'available' | 'busy',
     }));
   },
 
+  // Knowledge Base
+  saveToKnowledgeBase: async (entry: {
+    carMake: string;
+    carModel: string;
+    carYear?: string;
+    symptomKeywords: string;
+    verifiedDiagnosis: string;
+    fixDescription?: string;
+    partsUsed?: any[];
+    actualTime?: string;
+    severity?: 'low' | 'medium' | 'high';
+    sourceJobId?: string;
+  }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Must be logged in');
+
+    const { data, error } = await supabase
+      .from('diagnostic_knowledge_base')
+      .insert({
+        car_make: entry.carMake,
+        car_model: entry.carModel,
+        car_year: entry.carYear,
+        symptom_keywords: entry.symptomKeywords,
+        verified_diagnosis: entry.verifiedDiagnosis,
+        fix_description: entry.fixDescription,
+        parts_used: entry.partsUsed || [],
+        actual_time: entry.actualTime,
+        severity: entry.severity,
+        verified_by: user.id,
+        source_job_id: entry.sourceJobId,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  getKnowledgeBase: async (filters?: { make?: string; model?: string; search?: string }) => {
+    let query = supabase
+      .from('diagnostic_knowledge_base')
+      .select('*')
+      .order('upvotes', { ascending: false });
+
+    if (filters?.make) query = query.ilike('car_make', filters.make);
+    if (filters?.model) query = query.ilike('car_model', filters.model);
+    if (filters?.search) query = query.ilike('symptom_keywords', `%${filters.search}%`);
+
+    const { data, error } = await query.limit(50);
+    if (error) throw error;
+    return data;
+  },
+
+  upvoteKnowledgeBase: async (id: string) => {
+    const { data: current, error: fetchErr } = await supabase
+      .from('diagnostic_knowledge_base')
+      .select('upvotes')
+      .eq('id', id)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const { error } = await supabase
+      .from('diagnostic_knowledge_base')
+      .update({ upvotes: (current.upvotes || 0) + 1 })
+      .eq('id', id);
+    if (error) throw error;
+  },
 };
