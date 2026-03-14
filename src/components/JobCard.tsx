@@ -26,7 +26,11 @@ export function JobCard({ job }: JobCardProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
           <Zap className="h-3.5 w-3.5" />
-          {job.diagnosis ? 'AI Diagnosed' : 'New Job'}
+          {job.diagnosis
+            ? 'AI Diagnosed'
+            : Date.now() - new Date(job.createdAt).getTime() < 2 * 60 * 60 * 1000
+              ? 'New Job'
+              : 'Job'}
         </div>
         <span className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
