@@ -11,6 +11,7 @@ import { DiagnosisPanel } from "@/components/DiagnosisPanel";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { MapComponent } from "@/components/MapComponent";
 import { ArrowLeft, Phone, CheckCircle, ShieldAlert, Upload, Camera, Loader2, Car } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRef } from "react";
 import { toast } from "sonner";
 import {
