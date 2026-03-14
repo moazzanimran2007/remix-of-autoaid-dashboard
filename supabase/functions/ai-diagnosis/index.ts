@@ -311,8 +311,19 @@ Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       severity: diagnosis.severity,
     };
 
+    // Geocode location if available
     if (callInfo.locationAddress) {
-      updateData.symptoms = `${callInfo.symptoms}\n\nLocation: ${callInfo.locationAddress}`;
+      console.log('Geocoding address:', callInfo.locationAddress);
+      const coords = await geocodeAddress(callInfo.locationAddress);
+      if (coords) {
+        updateData.location_lat = coords.lat;
+        updateData.location_lng = coords.lng;
+        console.log('Location coordinates set:', coords.lat, coords.lng);
+      } else {
+        // Fallback: append address to symptoms so the info isn't lost
+        updateData.symptoms = `${callInfo.symptoms}\n\nLocation: ${callInfo.locationAddress}`;
+        console.log('Geocoding failed, address appended to symptoms');
+      }
     }
 
     const { error: updateError } = await supabase
