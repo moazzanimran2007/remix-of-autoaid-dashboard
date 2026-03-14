@@ -8,6 +8,83 @@ const corsHeaders = {
 
 const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
+// --- Brand alias normalization ---
+const BRAND_ALIASES: Record<string, string> = {
+  'chevy': 'Chevrolet',
+  'chevvy': 'Chevrolet',
+  'merc': 'Mercedes-Benz',
+  'benz': 'Mercedes-Benz',
+  'mercedes': 'Mercedes-Benz',
+  'beemer': 'BMW',
+  'beamer': 'BMW',
+  'bimmer': 'BMW',
+  'vw': 'Volkswagen',
+  'volks': 'Volkswagen',
+  'caddy': 'Cadillac',
+  'olds': 'Oldsmobile',
+  'pontiac': 'Pontiac',
+  'landy': 'Land Rover',
+  'rover': 'Land Rover',
+  'jag': 'Jaguar',
+  'alfa': 'Alfa Romeo',
+  'aston': 'Aston Martin',
+  'lambo': 'Lamborghini',
+  'rolls': 'Rolls-Royce',
+  'rr': 'Rolls-Royce',
+};
+
+function normalizeBrand(brand: string): string {
+  if (!brand) return brand;
+  const lower = brand.trim().toLowerCase();
+  if (BRAND_ALIASES[lower]) return BRAND_ALIASES[lower];
+  // Title-case fallback
+  return brand.trim().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// --- Transcript quality gate ---
+function assessTranscriptQuality(transcript: string): { ok: boolean; reason?: string } {
+  if (!transcript || transcript.trim().length < 20) {
+    return { ok: false, reason: 'Transcript too short (under 20 characters)' };
+  }
+  // Count meaningful user turns — look for patterns like "User:", "Customer:", or lines with "?" 
+  const lines = transcript.split('\n').filter(l => l.trim().length > 0);
+  const userTurns = lines.filter(l =>
+    /^(user|customer|caller|client)\s*:/i.test(l.trim()) ||
+    /\b(my car|my vehicle|it('s| is)|problem|issue|noise|light|won't|doesn't|broke|leak|smell|shake|vibrat)/i.test(l)
+  );
+  if (userTurns.length < 2 && lines.length < 4) {
+    return { ok: false, reason: `Insufficient content — only ${userTurns.length} meaningful turn(s) detected` };
+  }
+  return { ok: true };
+}
+
+// --- Retry wrapper for AI calls ---
+async function callWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 2,
+  label = 'AI call'
+): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isRetryable = err instanceof Error && (
+        err.message.includes('500') || err.message.includes('502') ||
+        err.message.includes('503') || err.message.includes('504') ||
+        err.message.includes('network') || err.message.includes('fetch')
+      );
+      if (attempt < retries && isRetryable) {
+        const delay = 1000 * (attempt + 1);
+        console.warn(`${label} attempt ${attempt + 1} failed, retrying in ${delay}ms:`, err.message);
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error(`${label} failed after ${retries + 1} attempts`);
+}
+
 async function callLovableAI(
   apiKey: string,
   model: string,
@@ -105,7 +182,6 @@ async function fetchCorrectionsContext(
   carModel: string
 ): Promise<string> {
   try {
-    // Join corrections with jobs to match by make/model
     const { data, error } = await supabase
       .from('diagnosis_corrections')
       .select('corrected_issue, corrected_root_cause, corrected_severity, corrected_time, mechanic_feedback, accuracy_rating, job_id')
@@ -114,7 +190,6 @@ async function fetchCorrectionsContext(
 
     if (error || !data || data.length === 0) return '';
 
-    // Filter by matching jobs' make/model
     const { data: jobs } = await supabase
       .from('jobs')
       .select('id, car_make, car_model')
@@ -164,54 +239,81 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // --- Quality gate ---
+    const quality = assessTranscriptQuality(transcript);
+    if (!quality.ok) {
+      console.warn('Transcript quality gate failed:', quality.reason);
+      await supabase
+        .from('jobs')
+        .update({
+          symptoms: `Insufficient transcript — manual review needed. Reason: ${quality.reason}`,
+          severity: 'low',
+        })
+        .eq('id', jobId);
+
+      return new Response(JSON.stringify({
+        success: false,
+        qualityGate: false,
+        reason: quality.reason,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('Starting AI diagnosis for job:', jobId);
 
-    // Step 1: Extract customer and vehicle information from transcript
+    // Step 1: Extract customer and vehicle information (with retry)
     console.log('Step 1: Extracting call info with gemini-2.5-flash...');
-    const callInfo = await callLovableAI(
-      lovableApiKey,
-      'google/gemini-2.5-flash',
-      'Extract customer and vehicle information from this call transcript. Be precise and extract exactly what was said.',
-      transcript,
-      [{
-        type: 'function',
-        function: {
-          name: 'extract_call_info',
-          description: 'Extract structured information from the call transcript',
-          parameters: {
-            type: 'object',
-            properties: {
-              customerName: { type: 'string', description: 'Customer full name' },
-              carMake: { type: 'string', description: 'Vehicle manufacturer/brand (e.g., Toyota, Ford)' },
-              carModel: { type: 'string', description: 'Vehicle model (e.g., Camry, F-150)' },
-              carYear: { type: 'string', description: 'Vehicle year (e.g., 2018, 2020)' },
-              symptoms: { type: 'string', description: 'Clear summary of the vehicle problem described' },
-              locationAddress: { type: 'string', description: 'Customer location or address if mentioned' },
+    const callInfo = await callWithRetry(
+      () => callLovableAI(
+        lovableApiKey,
+        'google/gemini-2.5-flash',
+        'Extract customer and vehicle information from this call transcript. Be precise and extract exactly what was said.',
+        transcript,
+        [{
+          type: 'function',
+          function: {
+            name: 'extract_call_info',
+            description: 'Extract structured information from the call transcript',
+            parameters: {
+              type: 'object',
+              properties: {
+                customerName: { type: 'string', description: 'Customer full name' },
+                carMake: { type: 'string', description: 'Vehicle manufacturer/brand (e.g., Toyota, Ford)' },
+                carModel: { type: 'string', description: 'Vehicle model (e.g., Camry, F-150)' },
+                carYear: { type: 'string', description: 'Vehicle year (e.g., 2018, 2020)' },
+                symptoms: { type: 'string', description: 'Clear summary of the vehicle problem described' },
+                locationAddress: { type: 'string', description: 'Customer location or address if mentioned' },
+              },
+              required: ['customerName', 'carMake', 'carModel', 'carYear', 'symptoms'],
+              additionalProperties: false,
             },
-            required: ['customerName', 'carMake', 'carModel', 'carYear', 'symptoms'],
-            additionalProperties: false,
           },
-        },
-      }],
-      'extract_call_info'
+        }],
+        'extract_call_info'
+      ),
+      2,
+      'Extract call info'
     );
 
-    console.log('Extracted call info:', callInfo);
+    // Normalize brand aliases
+    callInfo.carMake = normalizeBrand(callInfo.carMake);
+    console.log('Extracted call info (normalized):', callInfo);
 
-    // Step 1.5: Query knowledge base + corrections for RAG
+    // Step 1.5: Query knowledge base + corrections for RAG (already parallel)
     console.log('Step 1.5: Querying diagnostic knowledge base and corrections...');
     const [knowledgeBaseContext, correctionsContext] = await Promise.all([
       fetchKnowledgeBaseContext(supabase, callInfo.carMake, callInfo.carModel, callInfo.symptoms),
       fetchCorrectionsContext(supabase, callInfo.carMake, callInfo.carModel),
     ]);
 
-
-    // Step 2: Get AI diagnosis with gemini-2.5-pro for best reasoning
+    // Step 2: Get AI diagnosis (with retry)
     console.log('Step 2: Running AI diagnosis with gemini-2.5-pro...');
-    const diagnosis = await callLovableAI(
-      lovableApiKey,
-      'google/gemini-2.5-pro',
-      `You are an expert master automotive diagnostic technician with 20+ years of experience across all makes and models.
+    const diagnosis = await callWithRetry(
+      () => callLovableAI(
+        lovableApiKey,
+        'google/gemini-2.5-pro',
+        `You are an expert master automotive diagnostic technician with 20+ years of experience across all makes and models.
 
 CRITICAL INSTRUCTIONS:
 1. Consider this SPECIFIC vehicle's known issues, recalls, TSBs (Technical Service Bulletins), and common failure patterns
@@ -230,7 +332,7 @@ If VERIFIED PAST DIAGNOSES are provided below, strongly consider them as they co
 If MECHANIC CORRECTIONS are provided below, pay close attention — these are cases where the AI was wrong and mechanics had to correct it. Avoid making the same mistakes. Adjust your diagnosis accordingly.
 
 Provide comprehensive, actionable diagnostic information that will help mechanics work efficiently and safely.`,
-      `VEHICLE CONTEXT:
+        `VEHICLE CONTEXT:
 - Make: ${callInfo.carMake}
 - Model: ${callInfo.carModel}
 - Year: ${callInfo.carYear}
@@ -238,69 +340,72 @@ Provide comprehensive, actionable diagnostic information that will help mechanic
 SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}${correctionsContext}
 
 Provide a comprehensive diagnostic analysis for this specific vehicle.`,
-      [{
-        type: 'function',
-        function: {
-          name: 'provide_diagnosis',
-          description: 'Provide comprehensive automotive diagnosis with vehicle-specific analysis',
-          parameters: {
-            type: 'object',
-            properties: {
-              issue: { type: 'string', description: 'Detailed description of the probable issue (3-5 sentences with technical detail)' },
-              rootCause: { type: 'string', description: 'Deep analysis of why this is happening' },
-              makeModelSpecifics: { type: 'string', description: 'Known issues, recalls, TSBs specific to this make/model/year' },
-              severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Severity level' },
-              confidenceLevel: { type: 'number', description: 'Confidence 0-100' },
-              diagnosticSteps: { type: 'array', items: { type: 'string' }, description: 'Step-by-step diagnostic procedure' },
-              recommendedTools: { type: 'array', items: { type: 'string' }, description: 'Tools needed' },
-              estimatedTime: { type: 'string', description: 'Time estimate (e.g., "3-5 hours")' },
-              requiredParts: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    partName: { type: 'string' },
-                    estimatedCost: { type: 'string' },
-                    isCommon: { type: 'boolean' },
+        [{
+          type: 'function',
+          function: {
+            name: 'provide_diagnosis',
+            description: 'Provide comprehensive automotive diagnosis with vehicle-specific analysis',
+            parameters: {
+              type: 'object',
+              properties: {
+                issue: { type: 'string', description: 'Detailed description of the probable issue (3-5 sentences with technical detail)' },
+                rootCause: { type: 'string', description: 'Deep analysis of why this is happening' },
+                makeModelSpecifics: { type: 'string', description: 'Known issues, recalls, TSBs specific to this make/model/year' },
+                severity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Severity level' },
+                confidenceLevel: { type: 'number', description: 'Confidence 0-100' },
+                diagnosticSteps: { type: 'array', items: { type: 'string' }, description: 'Step-by-step diagnostic procedure' },
+                recommendedTools: { type: 'array', items: { type: 'string' }, description: 'Tools needed' },
+                estimatedTime: { type: 'string', description: 'Time estimate (e.g., "3-5 hours")' },
+                requiredParts: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      partName: { type: 'string' },
+                      estimatedCost: { type: 'string' },
+                      isCommon: { type: 'boolean' },
+                    },
+                    required: ['partName', 'estimatedCost', 'isCommon'],
+                    additionalProperties: false,
                   },
-                  required: ['partName', 'estimatedCost', 'isCommon'],
-                  additionalProperties: false,
                 },
-              },
-              commonIssuesForModel: { type: 'array', items: { type: 'string' } },
-              safetyWarnings: { type: 'array', items: { type: 'string' } },
-              alternativeDiagnoses: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    issue: { type: 'string' },
-                    probability: { type: 'string', enum: ['low', 'medium', 'high'] },
-                    distinguishingFactors: { type: 'string' },
+                commonIssuesForModel: { type: 'array', items: { type: 'string' } },
+                safetyWarnings: { type: 'array', items: { type: 'string' } },
+                alternativeDiagnoses: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      issue: { type: 'string' },
+                      probability: { type: 'string', enum: ['low', 'medium', 'high'] },
+                      distinguishingFactors: { type: 'string' },
+                    },
+                    required: ['issue', 'probability', 'distinguishingFactors'],
+                    additionalProperties: false,
                   },
-                  required: ['issue', 'probability', 'distinguishingFactors'],
-                  additionalProperties: false,
                 },
+                preventiveMeasures: { type: 'array', items: { type: 'string' } },
+                mechanicNotes: { type: 'string' },
               },
-              preventiveMeasures: { type: 'array', items: { type: 'string' } },
-              mechanicNotes: { type: 'string' },
+              required: [
+                'issue', 'rootCause', 'makeModelSpecifics', 'severity', 'confidenceLevel',
+                'diagnosticSteps', 'recommendedTools', 'estimatedTime', 'requiredParts',
+                'commonIssuesForModel', 'safetyWarnings', 'alternativeDiagnoses',
+                'preventiveMeasures', 'mechanicNotes',
+              ],
+              additionalProperties: false,
             },
-            required: [
-              'issue', 'rootCause', 'makeModelSpecifics', 'severity', 'confidenceLevel',
-              'diagnosticSteps', 'recommendedTools', 'estimatedTime', 'requiredParts',
-              'commonIssuesForModel', 'safetyWarnings', 'alternativeDiagnoses',
-              'preventiveMeasures', 'mechanicNotes',
-            ],
-            additionalProperties: false,
           },
-        },
-      }],
-      'provide_diagnosis'
+        }],
+        'provide_diagnosis'
+      ),
+      2,
+      'AI diagnosis'
     );
 
     console.log('Parsed diagnosis, severity:', diagnosis.severity);
 
-    // Step 3: Update job with all extracted information
+    // Step 3: Build update data
     const updateData: any = {
       customer_name: callInfo.customerName,
       car_make: callInfo.carMake,
@@ -318,43 +423,41 @@ Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       if (coords) {
         updateData.location_lat = coords.lat;
         updateData.location_lng = coords.lng;
-        console.log('Location coordinates set:', coords.lat, coords.lng);
       } else {
-        // Fallback: append address to symptoms so the info isn't lost
         updateData.symptoms = `${callInfo.symptoms}\n\nLocation: ${callInfo.locationAddress}`;
-        console.log('Geocoding failed, address appended to symptoms');
       }
     }
 
-    const { error: updateError } = await supabase
+    // Step 4: Update DB + trigger parts search IN PARALLEL
+    const dbUpdatePromise = supabase
       .from('jobs')
       .update(updateData)
-      .eq('id', jobId);
-
-    if (updateError) {
-      console.error('Error updating job:', updateError);
-      throw updateError;
-    }
-
-    console.log('Job updated with diagnosis');
-
-    // Trigger parts search asynchronously
-    if (diagnosis.requiredParts && diagnosis.requiredParts.length > 0) {
-      console.log('Triggering parts search for', diagnosis.requiredParts.length, 'parts');
-      supabase.functions.invoke('search-parts', {
-        body: {
-          jobId: jobId,
-          vehicleInfo: {
-            year: callInfo.carYear,
-            make: callInfo.carMake,
-            model: callInfo.carModel,
-          },
-          parts: diagnosis.requiredParts,
+      .eq('id', jobId)
+      .then(({ error: updateError }: any) => {
+        if (updateError) {
+          console.error('Error updating job:', updateError);
+          throw updateError;
         }
-      }).catch(error => {
-        console.error('Error invoking search-parts:', error);
+        console.log('Job updated with diagnosis');
       });
-    }
+
+    const partsSearchPromise = (diagnosis.requiredParts && diagnosis.requiredParts.length > 0)
+      ? supabase.functions.invoke('search-parts', {
+          body: {
+            jobId,
+            vehicleInfo: {
+              year: callInfo.carYear,
+              make: callInfo.carMake,
+              model: callInfo.carModel,
+            },
+            parts: diagnosis.requiredParts,
+          },
+        }).catch((error: any) => {
+          console.error('Error invoking search-parts:', error);
+        })
+      : Promise.resolve();
+
+    await Promise.all([dbUpdatePromise, partsSearchPromise]);
 
     return new Response(JSON.stringify({ success: true, diagnosis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
