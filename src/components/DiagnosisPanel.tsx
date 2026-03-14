@@ -260,6 +260,25 @@ export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, parts
             )}
           </Accordion>
         )}
+
+        {/* Verify & Save button */}
+        {job && diagnosis && (
+          <Button
+            onClick={handleVerifyAndSave}
+            disabled={saving || saved}
+            variant="outline"
+            size="sm"
+            className="w-full rounded-xl border-accent/30 text-accent hover:bg-accent/10 mt-2"
+          >
+            {saving ? (
+              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</>
+            ) : saved ? (
+              <><CheckCircle className="h-3.5 w-3.5 mr-1.5" />Saved to Knowledge Base</>
+            ) : (
+              <><BookCheck className="h-3.5 w-3.5 mr-1.5" />Verify &amp; Save to Knowledge Base</>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   );

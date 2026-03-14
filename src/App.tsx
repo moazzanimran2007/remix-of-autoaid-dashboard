@@ -47,6 +47,7 @@ const App = () => (
             <Route path="/jobs/:id" element={<AppLayout><JobDetails /></AppLayout>} />
             <Route path="/mechanics" element={<AppLayout><MechanicsDirectory /></AppLayout>} />
             <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+            <Route path="/knowledge-base" element={<AppLayout><KnowledgeBase /></AppLayout>} />
             <Route path="/chat" element={<AppLayout><ChatBot /></AppLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Newspaper, ClipboardList, Plus, Users, Settings } from "lucide-react";
+import { Newspaper, ClipboardList, Plus, Users, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/", icon: Newspaper, label: "Feed", end: true },
   { to: "/jobs", icon: ClipboardList, label: "Jobs" },
   { to: "/mechanics", icon: Users, label: "Mechanics" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/knowledge-base", icon: BookOpen, label: "KB" },
 ];
 
 export function BottomNav() {
