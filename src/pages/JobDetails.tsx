@@ -232,14 +232,14 @@ export default function JobDetails() {
             </div>
           </div>
 
-          {(!job.photoAnalysis || job.photoAnalysis.length === 0) ? (
+          {(!job.photoAnalysis || job.photoAnalysis.length === 0) && !uploadingPhoto ? (
             <div className="text-center py-6 text-muted-foreground border border-dashed border-foreground/15 rounded-xl">
               <Camera className="h-8 w-8 mx-auto mb-1.5 opacity-30" />
               <p className="text-xs">Upload a photo for AI analysis</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {job.photoAnalysis.map((entry, i) => (
+              {job.photoAnalysis?.map((entry, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex items-start gap-3">
                     <img src={entry.imageUrl} alt={`Photo ${i + 1}`} className="w-20 h-16 object-cover rounded-xl border border-foreground/10 shrink-0" />
@@ -251,6 +251,17 @@ export default function JobDetails() {
                   {i < job.photoAnalysis!.length - 1 && <hr className="border-foreground/5" />}
                 </div>
               ))}
+              {uploadingPhoto && (
+                <div className="flex items-start gap-3">
+                  <Skeleton className="w-20 h-16 rounded-xl shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <span className="chip-pill border-accent/30 text-accent text-[10px] px-2 py-0.5 inline-block opacity-50">AI Vision</span>
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-4/5" />
+                    <Skeleton className="h-3 w-3/5" />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
