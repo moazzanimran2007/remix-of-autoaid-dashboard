@@ -79,7 +79,9 @@ export default function JobDetails() {
     try {
       const vehicleContext = job ? `${job.carYear} ${job.carMake} ${job.carModel}` : undefined;
       const imageUrl = await api.uploadPhoto(id, file);
-      toast.success('Photo uploaded — analyzing with Reka Vision...');
+      // Photo is now saved to the DB — refresh so it appears in the gallery immediately
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
+      toast.success('Photo uploaded — analyzing with AI Vision...');
       await api.analyzePhoto(id, imageUrl, vehicleContext);
       toast.success('Visual inspection complete');
       queryClient.invalidateQueries({ queryKey: ['job', id] });

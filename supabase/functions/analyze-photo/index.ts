@@ -8,6 +8,29 @@ const corsHeaders = {
 
 const AI_GATEWAY = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok || response.status < 500) return response;
+      if (attempt < retries) {
+        console.warn(`AI gateway returned ${response.status}, retrying (${attempt + 1}/${retries})...`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      } else {
+        return response;
+      }
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`Network error, retrying (${attempt + 1}/${retries})...`, err);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw new Error('Exhausted retries');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,8 +59,8 @@ serve(async (req) => {
       ? `Vehicle: ${vehicleContext}`
       : 'Vehicle details not provided.';
 
-    // Use Gemini 2.5 Pro for image analysis (best multimodal)
-    const aiResponse = await fetch(AI_GATEWAY, {
+    // Use Gemini 2.5 Pro for image analysis with retry logic
+    const aiResponse = await fetchWithRetry(AI_GATEWAY, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
@@ -88,23 +111,33 @@ Be specific and technical. If the image is unclear or not automotive-related, st
 
     console.log('AI Vision analysis complete');
 
-    // Fetch current photo_analysis array and append the new result
+    // Atomic read + update: fetch both photos and photo_analysis, append to both
     const { data: jobData } = await supabase
       .from('jobs')
-      .select('photo_analysis')
+      .select('photos, photo_analysis')
       .eq('id', jobId)
       .single();
 
-    const existing = (jobData?.photo_analysis as any[]) || [];
-    const newEntry = {
+    const existingPhotos = (jobData?.photos as string[]) || [];
+    const existingAnalysis = (jobData?.photo_analysis as any[]) || [];
+
+    const newAnalysisEntry = {
       imageUrl,
       analysis: analysisText,
       analyzedAt: new Date().toISOString(),
     };
 
+    // Build update payload: append imageUrl to photos (if not already there) and analysis
+    const updatedPhotos = existingPhotos.includes(imageUrl)
+      ? existingPhotos
+      : [...existingPhotos, imageUrl];
+
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({ photo_analysis: [...existing, newEntry] })
+      .update({
+        photos: updatedPhotos,
+        photo_analysis: [...existingAnalysis, newAnalysisEntry],
+      })
       .eq('id', jobId);
 
     if (updateError) {

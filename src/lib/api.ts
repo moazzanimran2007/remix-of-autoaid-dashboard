@@ -168,7 +168,7 @@ export const api = {
     return mapJobFromDb(data);
   },
 
-  // Photo upload + Reka Vision analysis
+  // Photo upload + persist URL to job's photos array
   uploadPhoto: async (jobId: string, file: File): Promise<string> => {
     const ext = file.name.split('.').pop();
     const path = `${jobId}/${Date.now()}.${ext}`;
@@ -177,7 +177,22 @@ export const api = {
       .upload(path, file, { contentType: file.type, upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from('job-photos').getPublicUrl(path);
-    return data.publicUrl;
+    const publicUrl = data.publicUrl;
+
+    // Append URL to the job's photos array in the database
+    const { data: jobData } = await supabase
+      .from('jobs')
+      .select('photos')
+      .eq('id', jobId)
+      .single();
+    const currentPhotos = (jobData?.photos as string[]) || [];
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ photos: [...currentPhotos, publicUrl] })
+      .eq('id', jobId);
+    if (updateError) throw updateError;
+
+    return publicUrl;
   },
 
   analyzePhoto: async (jobId: string, imageUrl: string, vehicleContext?: string): Promise<string> => {
