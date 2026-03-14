@@ -12,6 +12,7 @@ import JobDetails from "./pages/JobDetails";
 import MechanicsDirectory from "./pages/MechanicsDirectory";
 import Settings from "./pages/Settings";
 import ChatBot from "./pages/ChatBot";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import AuthPage from "./pages/AuthPage";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
