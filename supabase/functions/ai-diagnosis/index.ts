@@ -208,6 +208,8 @@ If vehicle details are unavailable (N/A), still provide thorough symptom-based a
 
 If VERIFIED PAST DIAGNOSES are provided below, strongly consider them as they come from real mechanic experience with this exact make/model. Weight them higher than generic knowledge, especially entries with many upvotes.
 
+If MECHANIC CORRECTIONS are provided below, pay close attention — these are cases where the AI was wrong and mechanics had to correct it. Avoid making the same mistakes. Adjust your diagnosis accordingly.
+
 Provide comprehensive, actionable diagnostic information that will help mechanics work efficiently and safely.`,
       `VEHICLE CONTEXT:
 - Make: ${callInfo.carMake}
