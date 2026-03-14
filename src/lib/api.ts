@@ -273,4 +273,39 @@ export const api = {
       .eq('id', id);
     if (error) throw error;
   },
+
+  submitCorrection: async (correction: {
+    jobId: string;
+    originalDiagnosis: any;
+    correctedIssue?: string;
+    correctedRootCause?: string;
+    correctedSeverity?: 'low' | 'medium' | 'high';
+    correctedParts?: any[];
+    correctedTime?: string;
+    mechanicFeedback?: string;
+    accuracyRating?: number;
+  }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Must be logged in');
+
+    const { data, error } = await supabase
+      .from('diagnosis_corrections')
+      .insert({
+        job_id: correction.jobId,
+        original_diagnosis: correction.originalDiagnosis,
+        corrected_issue: correction.correctedIssue,
+        corrected_root_cause: correction.correctedRootCause,
+        corrected_severity: correction.correctedSeverity,
+        corrected_parts: correction.correctedParts,
+        corrected_time: correction.correctedTime,
+        mechanic_feedback: correction.mechanicFeedback,
+        accuracy_rating: correction.accuracyRating,
+        corrected_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
 };

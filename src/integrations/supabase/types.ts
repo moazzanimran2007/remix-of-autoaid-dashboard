@@ -58,6 +58,63 @@ export type Database = {
           },
         ]
       }
+      diagnosis_corrections: {
+        Row: {
+          accuracy_rating: number | null
+          corrected_by: string
+          corrected_issue: string | null
+          corrected_parts: Json | null
+          corrected_root_cause: string | null
+          corrected_severity: Database["public"]["Enums"]["job_severity"] | null
+          corrected_time: string | null
+          created_at: string
+          id: string
+          job_id: string
+          mechanic_feedback: string | null
+          original_diagnosis: Json
+        }
+        Insert: {
+          accuracy_rating?: number | null
+          corrected_by: string
+          corrected_issue?: string | null
+          corrected_parts?: Json | null
+          corrected_root_cause?: string | null
+          corrected_severity?:
+            | Database["public"]["Enums"]["job_severity"]
+            | null
+          corrected_time?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          mechanic_feedback?: string | null
+          original_diagnosis: Json
+        }
+        Update: {
+          accuracy_rating?: number | null
+          corrected_by?: string
+          corrected_issue?: string | null
+          corrected_parts?: Json | null
+          corrected_root_cause?: string | null
+          corrected_severity?:
+            | Database["public"]["Enums"]["job_severity"]
+            | null
+          corrected_time?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          mechanic_feedback?: string | null
+          original_diagnosis?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnosis_corrections_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_knowledge_base: {
         Row: {
           actual_time: string | null

@@ -80,6 +80,49 @@ async function fetchKnowledgeBaseContext(
   }
 }
 
+async function fetchCorrectionsContext(
+  supabase: any,
+  carMake: string,
+  carModel: string
+): Promise<string> {
+  try {
+    // Join corrections with jobs to match by make/model
+    const { data, error } = await supabase
+      .from('diagnosis_corrections')
+      .select('corrected_issue, corrected_root_cause, corrected_severity, corrected_time, mechanic_feedback, accuracy_rating, job_id')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length === 0) return '';
+
+    // Filter by matching jobs' make/model
+    const { data: jobs } = await supabase
+      .from('jobs')
+      .select('id, car_make, car_model')
+      .in('id', data.map((d: any) => d.job_id))
+      .ilike('car_make', carMake)
+      .ilike('car_model', carModel);
+
+    if (!jobs || jobs.length === 0) return '';
+
+    const jobIds = new Set(jobs.map((j: any) => j.id));
+    const relevant = data.filter((d: any) => jobIds.has(d.job_id));
+
+    if (relevant.length === 0) return '';
+
+    console.log(`Found ${relevant.length} mechanic corrections for ${carMake} ${carModel}`);
+
+    const entries = relevant.slice(0, 5).map((c: any, i: number) =>
+      `${i + 1}. [Accuracy: ${c.accuracy_rating}/5] ${c.corrected_issue || 'No issue correction'}${c.corrected_root_cause ? `\n   Root cause: ${c.corrected_root_cause}` : ''}${c.mechanic_feedback ? `\n   Mechanic feedback: ${c.mechanic_feedback}` : ''}${c.corrected_time ? `\n   Actual time: ${c.corrected_time}` : ''}`
+    ).join('\n\n');
+
+    return `\n\nMECHANIC CORRECTIONS (these are real corrections from mechanics who found the AI diagnosis inaccurate — learn from these mistakes and avoid repeating them):\n${entries}`;
+  } catch (err) {
+    console.error('Error fetching corrections:', err);
+    return '';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -136,14 +179,13 @@ serve(async (req) => {
 
     console.log('Extracted call info:', callInfo);
 
-    // Step 1.5: Query knowledge base for verified past diagnoses
-    console.log('Step 1.5: Querying diagnostic knowledge base...');
-    const knowledgeBaseContext = await fetchKnowledgeBaseContext(
-      supabase,
-      callInfo.carMake,
-      callInfo.carModel,
-      callInfo.symptoms
-    );
+    // Step 1.5: Query knowledge base + corrections for RAG
+    console.log('Step 1.5: Querying diagnostic knowledge base and corrections...');
+    const [knowledgeBaseContext, correctionsContext] = await Promise.all([
+      fetchKnowledgeBaseContext(supabase, callInfo.carMake, callInfo.carModel, callInfo.symptoms),
+      fetchCorrectionsContext(supabase, callInfo.carMake, callInfo.carModel),
+    ]);
+
 
     // Step 2: Get AI diagnosis with gemini-2.5-pro for best reasoning
     console.log('Step 2: Running AI diagnosis with gemini-2.5-pro...');
@@ -166,13 +208,15 @@ If vehicle details are unavailable (N/A), still provide thorough symptom-based a
 
 If VERIFIED PAST DIAGNOSES are provided below, strongly consider them as they come from real mechanic experience with this exact make/model. Weight them higher than generic knowledge, especially entries with many upvotes.
 
+If MECHANIC CORRECTIONS are provided below, pay close attention — these are cases where the AI was wrong and mechanics had to correct it. Avoid making the same mistakes. Adjust your diagnosis accordingly.
+
 Provide comprehensive, actionable diagnostic information that will help mechanics work efficiently and safely.`,
       `VEHICLE CONTEXT:
 - Make: ${callInfo.carMake}
 - Model: ${callInfo.carModel}
 - Year: ${callInfo.carYear}
 
-SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}
+SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}${correctionsContext}
 
 Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       [{
