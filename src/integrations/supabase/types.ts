@@ -58,6 +58,65 @@ export type Database = {
           },
         ]
       }
+      diagnostic_knowledge_base: {
+        Row: {
+          actual_time: string | null
+          car_make: string
+          car_model: string
+          car_year: string | null
+          created_at: string | null
+          fix_description: string | null
+          id: string
+          parts_used: Json | null
+          severity: Database["public"]["Enums"]["job_severity"] | null
+          source_job_id: string | null
+          symptom_keywords: string
+          upvotes: number | null
+          verified_by: string | null
+          verified_diagnosis: string
+        }
+        Insert: {
+          actual_time?: string | null
+          car_make: string
+          car_model: string
+          car_year?: string | null
+          created_at?: string | null
+          fix_description?: string | null
+          id?: string
+          parts_used?: Json | null
+          severity?: Database["public"]["Enums"]["job_severity"] | null
+          source_job_id?: string | null
+          symptom_keywords: string
+          upvotes?: number | null
+          verified_by?: string | null
+          verified_diagnosis: string
+        }
+        Update: {
+          actual_time?: string | null
+          car_make?: string
+          car_model?: string
+          car_year?: string | null
+          created_at?: string | null
+          fix_description?: string | null
+          id?: string
+          parts_used?: Json | null
+          severity?: Database["public"]["Enums"]["job_severity"] | null
+          source_job_id?: string | null
+          symptom_keywords?: string
+          upvotes?: number | null
+          verified_by?: string | null
+          verified_diagnosis?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_knowledge_base_source_job_id_fkey"
+            columns: ["source_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           assigned_mechanic_id: string | null
