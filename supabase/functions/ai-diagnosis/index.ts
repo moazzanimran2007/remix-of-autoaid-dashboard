@@ -80,6 +80,25 @@ async function fetchKnowledgeBaseContext(
   }
 }
 
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'MechanicApp/1.0' },
+    });
+    const data = await res.json();
+    if (data?.[0]?.lat && data?.[0]?.lon) {
+      console.log('Geocoded address:', address, '→', data[0].lat, data[0].lon);
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+    console.log('Geocoding returned no results for:', address);
+    return null;
+  } catch (err) {
+    console.error('Geocoding failed:', err);
+    return null;
+  }
+}
+
 async function fetchCorrectionsContext(
   supabase: any,
   carMake: string,
@@ -292,8 +311,19 @@ Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       severity: diagnosis.severity,
     };
 
+    // Geocode location if available
     if (callInfo.locationAddress) {
-      updateData.symptoms = `${callInfo.symptoms}\n\nLocation: ${callInfo.locationAddress}`;
+      console.log('Geocoding address:', callInfo.locationAddress);
+      const coords = await geocodeAddress(callInfo.locationAddress);
+      if (coords) {
+        updateData.location_lat = coords.lat;
+        updateData.location_lng = coords.lng;
+        console.log('Location coordinates set:', coords.lat, coords.lng);
+      } else {
+        // Fallback: append address to symptoms so the info isn't lost
+        updateData.symptoms = `${callInfo.symptoms}\n\nLocation: ${callInfo.locationAddress}`;
+        console.log('Geocoding failed, address appended to symptoms');
+      }
     }
 
     const { error: updateError } = await supabase
