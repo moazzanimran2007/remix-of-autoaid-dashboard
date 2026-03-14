@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface MapComponentProps {
