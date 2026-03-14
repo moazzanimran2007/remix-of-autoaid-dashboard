@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import JobsDashboard from "./pages/JobsDashboard";
@@ -30,31 +31,33 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* Protected routes */}
-            <Route path="/" element={<AppLayout><JobsDashboard /></AppLayout>} />
-            <Route path="/jobs" element={<AppLayout><JobsDashboard /></AppLayout>} />
-            <Route path="/jobs/:id" element={<AppLayout><JobDetails /></AppLayout>} />
-            <Route path="/mechanics" element={<AppLayout><MechanicsDirectory /></AppLayout>} />
-            <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-            <Route path="/knowledge-base" element={<AppLayout><KnowledgeBase /></AppLayout>} />
-            <Route path="/chat" element={<AppLayout><ChatBot /></AppLayout>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              {/* Protected routes */}
+              <Route path="/" element={<AppLayout><JobsDashboard /></AppLayout>} />
+              <Route path="/jobs" element={<AppLayout><JobsDashboard /></AppLayout>} />
+              <Route path="/jobs/:id" element={<AppLayout><JobDetails /></AppLayout>} />
+              <Route path="/mechanics" element={<AppLayout><MechanicsDirectory /></AppLayout>} />
+              <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+              <Route path="/knowledge-base" element={<AppLayout><KnowledgeBase /></AppLayout>} />
+              <Route path="/chat" element={<AppLayout><ChatBot /></AppLayout>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

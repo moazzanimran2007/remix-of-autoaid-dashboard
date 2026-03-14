@@ -216,7 +216,7 @@ export const api = {
       id: m.id,
       name: m.name,
       phone: m.phone,
-      distance: Math.floor(Math.random() * 15) + 1,
+      distance: 0, // TODO: calculate real distance from geolocation
       status: m.status as 'available' | 'busy',
     }));
   },
@@ -275,17 +275,7 @@ export const api = {
   },
 
   upvoteKnowledgeBase: async (id: string) => {
-    const { data: current, error: fetchErr } = await supabase
-      .from('diagnostic_knowledge_base')
-      .select('upvotes')
-      .eq('id', id)
-      .single();
-    if (fetchErr) throw fetchErr;
-
-    const { error } = await supabase
-      .from('diagnostic_knowledge_base')
-      .update({ upvotes: (current.upvotes || 0) + 1 })
-      .eq('id', id);
+    const { error } = await supabase.rpc('increment_upvote', { entry_id: id });
     if (error) throw error;
   },
 

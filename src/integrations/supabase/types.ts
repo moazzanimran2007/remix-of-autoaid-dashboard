@@ -373,6 +373,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_upvote: { Args: { entry_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "shop_owner" | "mechanic" | "user"

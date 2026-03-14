@@ -30,7 +30,7 @@ serve(async (req) => {
         id: m.id,
         name: m.name,
         phone: m.phone,
-        distance: Math.floor(Math.random() * 15) + 1, // Mock distance for now
+        distance: 0, // TODO: calculate real distance
         status: m.status,
       }));
 
