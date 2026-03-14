@@ -32,6 +32,63 @@ interface DiagnosisPanelProps {
 export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults, job }: DiagnosisPanelProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
+  const [submittingCorrection, setSubmittingCorrection] = useState(false);
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
+  const [correctedIssue, setCorrectedIssue] = useState('');
+  const [correctedRootCause, setCorrectedRootCause] = useState('');
+  const [correctedSeverity, setCorrectedSeverity] = useState<'low' | 'medium' | 'high'>('low');
+  const [correctedTime, setCorrectedTime] = useState('');
+  const [mechanicFeedback, setMechanicFeedback] = useState('');
+  const [accuracyRating, setAccuracyRating] = useState(3);
+
+  const openCorrectionForm = () => {
+    if (diagnosis) {
+      setCorrectedIssue(diagnosis.issue || '');
+      setCorrectedRootCause(diagnosis.rootCause || '');
+      setCorrectedSeverity(diagnosis.severity || severity);
+      setCorrectedTime(diagnosis.estimatedTime || '');
+    }
+    setCorrecting(true);
+  };
+
+  const handleSubmitCorrection = async () => {
+    if (!diagnosis || !job) return;
+    setSubmittingCorrection(true);
+    try {
+      await api.submitCorrection({
+        jobId: job.id,
+        originalDiagnosis: diagnosis,
+        correctedIssue,
+        correctedRootCause,
+        correctedSeverity,
+        correctedTime,
+        mechanicFeedback,
+        accuracyRating,
+      });
+      // Also save corrected version to knowledge base
+      await api.saveToKnowledgeBase({
+        carMake: job.carMake || '',
+        carModel: job.carModel || '',
+        carYear: job.carYear,
+        symptomKeywords: job.symptoms || '',
+        verifiedDiagnosis: correctedIssue || diagnosis.issue,
+        fixDescription: correctedRootCause || diagnosis.rootCause,
+        partsUsed: diagnosis.requiredParts,
+        actualTime: correctedTime || diagnosis.estimatedTime,
+        severity: correctedSeverity,
+        sourceJobId: job.id,
+      });
+      setCorrectionSubmitted(true);
+      setCorrecting(false);
+      toast.success('Correction saved & added to knowledge base!');
+    } catch (err) {
+      toast.error('Failed to submit correction');
+      console.error(err);
+    } finally {
+      setSubmittingCorrection(false);
+    }
+  };
 
   const handleVerifyAndSave = async () => {
     if (!diagnosis || !job) return;
