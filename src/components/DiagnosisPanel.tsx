@@ -19,7 +19,35 @@ interface DiagnosisPanelProps {
   job?: Job;
 }
 
-export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults }: DiagnosisPanelProps) {
+export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults, job }: DiagnosisPanelProps) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleVerifyAndSave = async () => {
+    if (!diagnosis || !job) return;
+    setSaving(true);
+    try {
+      await api.saveToKnowledgeBase({
+        carMake: job.carMake || '',
+        carModel: job.carModel || '',
+        carYear: job.carYear,
+        symptomKeywords: job.symptoms || '',
+        verifiedDiagnosis: diagnosis.issue,
+        fixDescription: diagnosis.rootCause,
+        partsUsed: diagnosis.requiredParts,
+        actualTime: diagnosis.estimatedTime,
+        severity: diagnosis.severity,
+        sourceJobId: job.id,
+      });
+      setSaved(true);
+      toast.success('Diagnosis saved to knowledge base!');
+    } catch (err) {
+      toast.error('Failed to save to knowledge base');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
   if (isAnalyzing) {
     return (
       <div className="card-social p-4">
