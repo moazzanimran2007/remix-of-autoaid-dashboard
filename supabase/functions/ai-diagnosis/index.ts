@@ -143,13 +143,6 @@ serve(async (req) => {
       fetchCorrectionsContext(supabase, callInfo.carMake, callInfo.carModel),
     ]);
 
-    // (legacy call kept for compatibility)
-    const _unused = await fetchKnowledgeBaseContext(
-      supabase,
-      callInfo.carMake,
-      callInfo.carModel,
-      callInfo.symptoms
-    );
 
     // Step 2: Get AI diagnosis with gemini-2.5-pro for best reasoning
     console.log('Step 2: Running AI diagnosis with gemini-2.5-pro...');
