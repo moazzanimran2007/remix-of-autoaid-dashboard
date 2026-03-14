@@ -47,6 +47,39 @@ async function callLovableAI(
   return JSON.parse(toolCall.function.arguments);
 }
 
+async function fetchKnowledgeBaseContext(
+  supabase: any,
+  carMake: string,
+  carModel: string,
+  symptoms: string
+): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('diagnostic_knowledge_base')
+      .select('verified_diagnosis, fix_description, parts_used, severity, upvotes, car_year, actual_time')
+      .ilike('car_make', carMake)
+      .ilike('car_model', carModel)
+      .order('upvotes', { ascending: false })
+      .limit(5);
+
+    if (error || !data || data.length === 0) {
+      console.log('No knowledge base matches found');
+      return '';
+    }
+
+    console.log(`Found ${data.length} knowledge base entries for ${carMake} ${carModel}`);
+
+    const entries = data.map((entry: any, i: number) =>
+      `${i + 1}. [${entry.upvotes} upvotes${entry.car_year ? `, Year: ${entry.car_year}` : ''}] ${entry.verified_diagnosis}${entry.fix_description ? `\n   Fix: ${entry.fix_description}` : ''}${entry.actual_time ? `\n   Actual repair time: ${entry.actual_time}` : ''}${entry.parts_used?.length ? `\n   Parts used: ${entry.parts_used.map((p: any) => p.partName || p).join(', ')}` : ''}`
+    ).join('\n\n');
+
+    return `\n\nVERIFIED PAST DIAGNOSES FROM MECHANIC KNOWLEDGE BASE (use these as reference — they are real, mechanic-verified fixes for this make/model):\n${entries}`;
+  } catch (err) {
+    console.error('Error fetching knowledge base:', err);
+    return '';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -103,6 +136,15 @@ serve(async (req) => {
 
     console.log('Extracted call info:', callInfo);
 
+    // Step 1.5: Query knowledge base for verified past diagnoses
+    console.log('Step 1.5: Querying diagnostic knowledge base...');
+    const knowledgeBaseContext = await fetchKnowledgeBaseContext(
+      supabase,
+      callInfo.carMake,
+      callInfo.carModel,
+      callInfo.symptoms
+    );
+
     // Step 2: Get AI diagnosis with gemini-2.5-pro for best reasoning
     console.log('Step 2: Running AI diagnosis with gemini-2.5-pro...');
     const diagnosis = await callLovableAI(
@@ -122,13 +164,15 @@ CRITICAL INSTRUCTIONS:
 
 If vehicle details are unavailable (N/A), still provide thorough symptom-based analysis but note the limitation.
 
+If VERIFIED PAST DIAGNOSES are provided below, strongly consider them as they come from real mechanic experience with this exact make/model. Weight them higher than generic knowledge, especially entries with many upvotes.
+
 Provide comprehensive, actionable diagnostic information that will help mechanics work efficiently and safely.`,
       `VEHICLE CONTEXT:
 - Make: ${callInfo.carMake}
 - Model: ${callInfo.carModel}
 - Year: ${callInfo.carYear}
 
-SYMPTOMS: ${callInfo.symptoms}
+SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}
 
 Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       [{

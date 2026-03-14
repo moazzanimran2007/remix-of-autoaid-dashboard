@@ -12,6 +12,7 @@ import JobDetails from "./pages/JobDetails";
 import MechanicsDirectory from "./pages/MechanicsDirectory";
 import Settings from "./pages/Settings";
 import ChatBot from "./pages/ChatBot";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import AuthPage from "./pages/AuthPage";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/jobs/:id" element={<AppLayout><JobDetails /></AppLayout>} />
             <Route path="/mechanics" element={<AppLayout><MechanicsDirectory /></AppLayout>} />
             <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+            <Route path="/knowledge-base" element={<AppLayout><KnowledgeBase /></AppLayout>} />
             <Route path="/chat" element={<AppLayout><ChatBot /></AppLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

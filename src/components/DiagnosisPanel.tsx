@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package, ExternalLink } from "lucide-react";
-import { Job } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Wrench, Clock, AlertCircle, CheckCircle, XCircle, Info, ShieldAlert, TrendingUp, Package, ExternalLink, BookCheck, Loader2 } from "lucide-react";
+import { Job, api } from "@/lib/api";
+import { toast } from "sonner";
 import {
   Accordion,
   AccordionContent,
@@ -13,9 +16,38 @@ interface DiagnosisPanelProps {
   severity: Job['severity'];
   isAnalyzing?: boolean;
   partsSearchResults?: Job['partsSearchResults'];
+  job?: Job;
 }
 
-export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults }: DiagnosisPanelProps) {
+export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, partsSearchResults, job }: DiagnosisPanelProps) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleVerifyAndSave = async () => {
+    if (!diagnosis || !job) return;
+    setSaving(true);
+    try {
+      await api.saveToKnowledgeBase({
+        carMake: job.carMake || '',
+        carModel: job.carModel || '',
+        carYear: job.carYear,
+        symptomKeywords: job.symptoms || '',
+        verifiedDiagnosis: diagnosis.issue,
+        fixDescription: diagnosis.rootCause,
+        partsUsed: diagnosis.requiredParts,
+        actualTime: diagnosis.estimatedTime,
+        severity: diagnosis.severity,
+        sourceJobId: job.id,
+      });
+      setSaved(true);
+      toast.success('Diagnosis saved to knowledge base!');
+    } catch (err) {
+      toast.error('Failed to save to knowledge base');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
   if (isAnalyzing) {
     return (
       <div className="card-social p-4">
@@ -227,6 +259,25 @@ export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, parts
               </AccordionItem>
             )}
           </Accordion>
+        )}
+
+        {/* Verify & Save button */}
+        {job && diagnosis && (
+          <Button
+            onClick={handleVerifyAndSave}
+            disabled={saving || saved}
+            variant="outline"
+            size="sm"
+            className="w-full rounded-xl border-accent/30 text-accent hover:bg-accent/10 mt-2"
+          >
+            {saving ? (
+              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</>
+            ) : saved ? (
+              <><CheckCircle className="h-3.5 w-3.5 mr-1.5" />Saved to Knowledge Base</>
+            ) : (
+              <><BookCheck className="h-3.5 w-3.5 mr-1.5" />Verify &amp; Save to Knowledge Base</>
+            )}
+          </Button>
         )}
       </div>
     </div>
