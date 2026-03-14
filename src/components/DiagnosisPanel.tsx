@@ -328,23 +328,98 @@ export function DiagnosisPanel({ diagnosis, severity, isAnalyzing = false, parts
           </Accordion>
         )}
 
-        {/* Verify & Save button */}
+        {/* Correction Form */}
+        {correcting && (
+          <div className="border border-primary/20 rounded-xl bg-primary/5 p-3 space-y-3">
+            <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <PenLine className="h-3.5 w-3.5 text-primary" /> Correct Diagnosis
+            </h4>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Accuracy Rating</Label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button key={star} onClick={() => setAccuracyRating(star)} className="focus:outline-none">
+                    <Star className={`h-4 w-4 ${star <= accuracyRating ? 'fill-primary text-primary' : 'text-muted-foreground/30'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Corrected Issue</Label>
+              <Textarea value={correctedIssue} onChange={(e) => setCorrectedIssue(e.target.value)} className="text-xs min-h-[60px] rounded-lg" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Corrected Root Cause</Label>
+              <Textarea value={correctedRootCause} onChange={(e) => setCorrectedRootCause(e.target.value)} className="text-xs min-h-[60px] rounded-lg" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Severity</Label>
+                <Select value={correctedSeverity} onValueChange={(v) => setCorrectedSeverity(v as 'low' | 'medium' | 'high')}>
+                  <SelectTrigger className="text-xs rounded-lg h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Actual Time</Label>
+                <Input value={correctedTime} onChange={(e) => setCorrectedTime(e.target.value)} className="text-xs rounded-lg h-8" placeholder="e.g. 2-3 hours" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Feedback (what did AI get wrong?)</Label>
+              <Textarea value={mechanicFeedback} onChange={(e) => setMechanicFeedback(e.target.value)} className="text-xs min-h-[50px] rounded-lg" placeholder="Describe what the AI missed or got wrong..." />
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={() => setCorrecting(false)} variant="ghost" size="sm" className="flex-1 rounded-xl text-xs">Cancel</Button>
+              <Button onClick={handleSubmitCorrection} disabled={submittingCorrection} size="sm" className="flex-1 rounded-xl text-xs">
+                {submittingCorrection ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Saving...</> : 'Submit Correction'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
         {job && diagnosis && (
-          <Button
-            onClick={handleVerifyAndSave}
-            disabled={saving || saved}
-            variant="outline"
-            size="sm"
-            className="w-full rounded-xl border-accent/30 text-accent hover:bg-accent/10 mt-2"
-          >
-            {saving ? (
-              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</>
-            ) : saved ? (
-              <><CheckCircle className="h-3.5 w-3.5 mr-1.5" />Saved to Knowledge Base</>
-            ) : (
-              <><BookCheck className="h-3.5 w-3.5 mr-1.5" />Verify &amp; Save to Knowledge Base</>
-            )}
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button
+              onClick={handleVerifyAndSave}
+              disabled={saving || saved || correctionSubmitted}
+              variant="outline"
+              size="sm"
+              className="flex-1 rounded-xl border-accent/30 text-accent hover:bg-accent/10"
+            >
+              {saving ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</>
+              ) : saved ? (
+                <><CheckCircle className="h-3.5 w-3.5 mr-1.5" />Saved</>
+              ) : (
+                <><BookCheck className="h-3.5 w-3.5 mr-1.5" />Verify</>
+              )}
+            </Button>
+            <Button
+              onClick={openCorrectionForm}
+              disabled={correcting || correctionSubmitted}
+              variant="outline"
+              size="sm"
+              className="flex-1 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+            >
+              {correctionSubmitted ? (
+                <><CheckCircle className="h-3.5 w-3.5 mr-1.5" />Corrected</>
+              ) : (
+                <><PenLine className="h-3.5 w-3.5 mr-1.5" />Correct</>
+              )}
+            </Button>
+          </div>
         )}
       </div>
     </div>

@@ -136,9 +136,15 @@ serve(async (req) => {
 
     console.log('Extracted call info:', callInfo);
 
-    // Step 1.5: Query knowledge base for verified past diagnoses
-    console.log('Step 1.5: Querying diagnostic knowledge base...');
-    const knowledgeBaseContext = await fetchKnowledgeBaseContext(
+    // Step 1.5: Query knowledge base + corrections for RAG
+    console.log('Step 1.5: Querying diagnostic knowledge base and corrections...');
+    const [knowledgeBaseContext, correctionsContext] = await Promise.all([
+      fetchKnowledgeBaseContext(supabase, callInfo.carMake, callInfo.carModel, callInfo.symptoms),
+      fetchCorrectionsContext(supabase, callInfo.carMake, callInfo.carModel),
+    ]);
+
+    // (legacy call kept for compatibility)
+    const _unused = await fetchKnowledgeBaseContext(
       supabase,
       callInfo.carMake,
       callInfo.carModel,
