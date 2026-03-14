@@ -216,7 +216,7 @@ export const api = {
       id: m.id,
       name: m.name,
       phone: m.phone,
-      distance: Math.floor(Math.random() * 15) + 1,
+      distance: 0, // TODO: calculate real distance from geolocation
       status: m.status as 'available' | 'busy',
     }));
   },

@@ -78,6 +78,11 @@ export default function JobDetails() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File too large. Maximum size is 10MB.');
+      return;
+    }
     setUploadingPhoto(true);
     try {
       const vehicleContext = job ? `${job.carYear} ${job.carMake} ${job.carModel}` : undefined;
