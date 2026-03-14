@@ -171,7 +171,7 @@ Provide comprehensive, actionable diagnostic information that will help mechanic
 - Model: ${callInfo.carModel}
 - Year: ${callInfo.carYear}
 
-SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}
+SYMPTOMS: ${callInfo.symptoms}${knowledgeBaseContext}${correctionsContext}
 
 Provide a comprehensive diagnostic analysis for this specific vehicle.`,
       [{
