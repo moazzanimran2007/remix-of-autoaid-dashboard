@@ -1,7 +1,10 @@
 import { NavLink } from "@/components/NavLink";
-import { ClipboardList, Users, Settings, Wrench, MessageSquare } from "lucide-react";
+import { ClipboardList, Users, Settings, Wrench, MessageSquare, UserPlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Sidebar() {
+  const { roles } = useAuth();
+  const isOwnerOrAdmin = roles.includes("shop_owner") || roles.includes("admin");
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
@@ -45,6 +48,18 @@ export function Sidebar() {
               AI Chat
             </NavLink>
           </li>
+          {isOwnerOrAdmin && (
+            <li>
+              <NavLink
+                to="/team"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors"
+                activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+              >
+                <UserPlus className="h-5 w-5" />
+                Team
+              </NavLink>
+            </li>
+          )}
           <li>
             <NavLink
               to="/settings"

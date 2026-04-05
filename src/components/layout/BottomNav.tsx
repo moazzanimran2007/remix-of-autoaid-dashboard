@@ -1,15 +1,17 @@
 import { NavLink } from "react-router-dom";
-import { Newspaper, ClipboardList, Plus, Users, BookOpen } from "lucide-react";
+import { ClipboardList, Plus, Users, BookOpen, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
-  { to: "/", icon: Newspaper, label: "Feed", end: true },
-  { to: "/jobs", icon: ClipboardList, label: "Jobs" },
+  { to: "/", icon: ClipboardList, label: "Jobs", end: true },
   { to: "/mechanics", icon: Users, label: "Mechanics" },
   { to: "/knowledge-base", icon: BookOpen, label: "KB" },
 ];
 
 export function BottomNav() {
+  const { roles } = useAuth();
+  const isOwnerOrAdmin = roles.includes("shop_owner") || roles.includes("admin");
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-t border-foreground/10 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
@@ -38,7 +40,7 @@ export function BottomNav() {
           <Plus className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
         </NavLink>
 
-        {navItems.slice(2).map((item) => (
+        {navItems.slice(1).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -53,6 +55,21 @@ export function BottomNav() {
             <span className="text-[10px] font-medium">{item.label}</span>
           </NavLink>
         ))}
+
+        {isOwnerOrAdmin && (
+          <NavLink
+            to="/team"
+            className={({ isActive }) =>
+              cn(
+                "flex flex-col items-center gap-0.5 px-3 py-1 transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )
+            }
+          >
+            <UserPlus className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Team</span>
+          </NavLink>
+        )}
       </div>
     </nav>
   );
