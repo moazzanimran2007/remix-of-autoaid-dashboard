@@ -38,10 +38,7 @@ export function MapComponent({ location }: MapComponentProps) {
     );
   }
 
-  // Build markers
-  let markers = `&marker=${center.lat},${center.lng}`;
-  
-  // If we have both customer and user locations, show a wider bounding box
+  // Build bounding box
   let bbox: string;
   if (location && userLocation && (location.lat !== userLocation.lat || location.lng !== userLocation.lng)) {
     const minLat = Math.min(location.lat, userLocation.lat) - 0.005;
@@ -53,7 +50,7 @@ export function MapComponent({ location }: MapComponentProps) {
     bbox = `${center.lng - 0.01},${center.lat - 0.01},${center.lng + 0.01},${center.lat + 0.01}`;
   }
 
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik${markers}`;
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik`;
 
   return (
     <div className="card-social p-4">
@@ -70,7 +67,7 @@ export function MapComponent({ location }: MapComponentProps) {
           </span>
         )}
       </div>
-      <div className="rounded-xl overflow-hidden border border-foreground/10">
+      <div className="rounded-xl overflow-hidden border border-foreground/10 relative">
         <iframe
           width="100%"
           height="220"
@@ -79,6 +76,10 @@ export function MapComponent({ location }: MapComponentProps) {
           src={mapUrl}
           title="Location map"
         />
+        {/* CSS marker overlay pinned to center */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <MapPin className="h-8 w-8 text-red-500 drop-shadow-lg -mt-4" fill="currentColor" strokeWidth={1.5} />
+        </div>
       </div>
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-1.5">
