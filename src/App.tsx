@@ -46,7 +46,6 @@ const App = () => (
 
               {/* Protected routes */}
               <Route path="/" element={<AppLayout><JobsDashboard /></AppLayout>} />
-              <Route path="/jobs" element={<AppLayout><JobsDashboard /></AppLayout>} />
               <Route path="/jobs/:id" element={<AppLayout><JobDetails /></AppLayout>} />
               <Route path="/mechanics" element={<AppLayout><MechanicsDirectory /></AppLayout>} />
               <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />

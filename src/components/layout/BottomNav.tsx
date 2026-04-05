@@ -40,7 +40,7 @@ export function BottomNav() {
           <Plus className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
         </NavLink>
 
-        {navItems.slice(1).map((item) => (
+        {navItems.slice(2).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
