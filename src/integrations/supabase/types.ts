@@ -187,6 +187,7 @@ export type Database = {
           id: string
           location_lat: number | null
           location_lng: number | null
+          organisation_id: string | null
           parts_search_results: Json | null
           photo_analysis: Json | null
           photos: string[] | null
@@ -210,6 +211,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          organisation_id?: string | null
           parts_search_results?: Json | null
           photo_analysis?: Json | null
           photos?: string[] | null
@@ -233,6 +235,7 @@ export type Database = {
           id?: string
           location_lat?: number | null
           location_lng?: number | null
+          organisation_id?: string | null
           parts_search_results?: Json | null
           photo_analysis?: Json | null
           photos?: string[] | null
@@ -252,6 +255,13 @@ export type Database = {
             referencedRelation: "mechanics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "jobs_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       mechanics: {
@@ -259,6 +269,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          organisation_id: string | null
           phone: string
           status: Database["public"]["Enums"]["mechanic_status"] | null
         }
@@ -266,6 +277,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          organisation_id?: string | null
           phone: string
           status?: Database["public"]["Enums"]["mechanic_status"] | null
         }
@@ -273,10 +285,19 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          organisation_id?: string | null
           phone?: string
           status?: Database["public"]["Enums"]["mechanic_status"] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mechanics_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -319,12 +340,98 @@ export type Database = {
           },
         ]
       }
+      organisation_invites: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          organisation_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          organisation_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          organisation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_invites_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisation_members: {
+        Row: {
+          id: string
+          joined_at: string
+          organisation_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          organisation_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          organisation_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organisation_members_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organisations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          organisation_id: string | null
           updated_at: string
         }
         Insert: {
@@ -332,6 +439,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          organisation_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -339,9 +447,18 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          organisation_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -366,6 +483,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
