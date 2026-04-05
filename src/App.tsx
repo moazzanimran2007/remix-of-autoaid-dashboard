@@ -14,6 +14,7 @@ import MechanicsDirectory from "./pages/MechanicsDirectory";
 import Settings from "./pages/Settings";
 import ChatBot from "./pages/ChatBot";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import TeamManagement from "./pages/TeamManagement";
 import AuthPage from "./pages/AuthPage";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
               <Route path="/knowledge-base" element={<AppLayout><KnowledgeBase /></AppLayout>} />
               <Route path="/chat" element={<AppLayout><ChatBot /></AppLayout>} />
+              <Route path="/team" element={<AppLayout><TeamManagement /></AppLayout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

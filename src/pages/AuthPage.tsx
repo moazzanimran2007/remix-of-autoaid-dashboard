@@ -14,6 +14,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [orgName, setOrgName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
@@ -34,11 +36,20 @@ export default function AuthPage() {
         toast.success("Welcome back!");
         navigate("/", { replace: true });
       } else {
+        if (!isOwner) {
+          toast.error("Only shop owners can create accounts. Ask your shop owner to invite you first.");
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { display_name: displayName },
+            data: {
+              display_name: displayName,
+              is_owner: true,
+              org_name: orgName,
+            },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -123,14 +134,43 @@ export default function AuthPage() {
               </h2>
 
               {!isLogin && (
-                <Input
-                  type="text"
-                  placeholder="Display name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="rounded-xl border-foreground/15 h-11"
-                  required
-                />
+                <>
+                  <Input
+                    type="text"
+                    placeholder="Display name"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="rounded-xl border-foreground/15 h-11"
+                    required
+                  />
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isOwner}
+                      onChange={(e) => setIsOwner(e.target.checked)}
+                      className="rounded border-foreground/15"
+                    />
+                    <span className="text-sm text-foreground">I'm a shop owner (CEO)</span>
+                  </label>
+
+                  {isOwner && (
+                    <Input
+                      type="text"
+                      placeholder="Organisation / Shop name"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      className="rounded-xl border-foreground/15 h-11"
+                      required
+                    />
+                  )}
+
+                  {!isOwner && (
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                      If you're a mechanic, ask your shop owner to add your email first. Then you can sign up here.
+                    </p>
+                  )}
+                </>
               )}
 
               <Input
