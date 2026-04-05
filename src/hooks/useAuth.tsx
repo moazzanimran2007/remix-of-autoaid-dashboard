@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: { display_name: string | null; avatar_url: string | null } | null;
+  profile: { display_name: string | null; avatar_url: string | null; organisation_id: string | null } | null;
+  organisationId: string | null;
   roles: string[];
   loading: boolean;
   signOut: () => Promise<void>;
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   profile: null,
+  organisationId: null,
   roles: [],
   loading: true,
   signOut: async () => {},
@@ -34,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_url, organisation_id")
       .eq("id", userId)
       .single();
     setProfile(data);
@@ -98,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, roles, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, organisationId: profile?.organisation_id ?? null, roles, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
