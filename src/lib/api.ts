@@ -94,7 +94,7 @@ function mapJobFromDb(dbJob: any): Job {
     createdAt: dbJob.created_at,
     assignedMechanic: dbJob.assigned_mechanic?.name,
     location: dbJob.location_lat && dbJob.location_lng
-      ? { lat: dbJob.location_lat, lng: dbJob.location_lng }
+      ? { lat: parseFloat(dbJob.location_lat), lng: parseFloat(dbJob.location_lng) }
       : undefined,
     photos: dbJob.photos,
     transcript: dbJob.transcript,
